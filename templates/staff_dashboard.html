@@ -7,10 +7,12 @@
 </head>
 <body class="bg-light">
   <div class="container text-center mt-5">
-    <h2>👷 Welcome, {{ username }} (Staff)</h2>
+    <h2>👷 Welcome, {{ session['username'] }} (Staff)</h2>
     <p>You can view and update product records assigned to you.</p>
-    <a href="{{ url_for('index') }}" class="btn btn-primary">Go to Inventory</a>
-    <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    <div class="mt-4">
+      <a href="{{ url_for('index') }}" class="btn btn-primary">Go to Inventory</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    </div>
   </div>
 </body>
 </html>

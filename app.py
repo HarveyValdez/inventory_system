@@ -43,8 +43,13 @@ def login():
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
-            flash('Welcome, ' + user.username + '!', 'success')
-            return redirect(url_for('index'))
+            flash(f'Welcome, {user.username}!', 'success')
+
+            # Redirect by role
+            if user.role == 'admin':
+                return redirect(url_for('admin_dashboard'))
+            else:
+                return redirect(url_for('staff_dashboard'))
         else:
             flash('Invalid username or password', 'danger')
 
@@ -56,6 +61,54 @@ def logout():
     session.clear()
     flash('You have been logged out.', 'info')
     return redirect(url_for('login'))
+
+# =====================================================
+# ROUTES: ADMIN AND STAFF DASHBOARDS
+# =====================================================
+
+@app.route('/admin_dashboard')
+def admin_dashboard():
+    if 'role' not in session or session['role'] != 'admin':
+        flash('Access denied: Admins only', 'danger')
+        return redirect(url_for('login'))
+
+    products = Product.query.all()
+    users = User.query.all()
+    return render_template('admin_dashboard.html', products=products, users=users)
+
+
+@app.route('/staff_dashboard')
+def staff_dashboard():
+    if 'role' not in session or session['role'] != 'staff':
+        flash('Access denied: Staff only', 'danger')
+        return redirect(url_for('login'))
+
+    products = Product.query.all()
+    return render_template('staff_dashboard.html', products=products)
+
+# =====================================================
+# ROUTE: STAFF REGISTRATION (ADMIN ONLY)
+# =====================================================
+
+@app.route('/register_staff', methods=['GET', 'POST'])
+def register_staff():
+    if 'role' not in session or session['role'] != 'admin':
+        flash('Access denied: Admins only', 'danger')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+
+        new_staff = User(username=username, password=hashed_pw, role='staff')
+        db.session.add(new_staff)
+        db.session.commit()
+
+        flash('New staff registered successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+
+    return render_template('register_staff.html')
 
 # =====================================================
 # ROUTES: INVENTORY CRUD (ROLE-PROTECTED)
@@ -134,6 +187,7 @@ def create_admin():
     db.session.add(new_admin)
     db.session.commit()
     print('Admin user created successfully!')
+
 
 if __name__ == '__main__':
     app.run(debug=True)

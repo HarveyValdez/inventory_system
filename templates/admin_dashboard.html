@@ -7,12 +7,14 @@
 </head>
 <body class="bg-light">
   <div class="container text-center mt-5">
-    <h2>👑 Welcome, {{ username }} (Admin)</h2>
+    <h2>👑 Welcome, {{ session['username'] }} (Admin)</h2>
     <p>You can manage all inventory items and users here.</p>
-    <a href="{{ url_for('index') }}" class="btn btn-success">Go to Inventory</a>
-    <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
-    <a href="{{ url_for('register_staff') }}" class="btn btn-primary">Register New Staff</a>
 
+    <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap">
+      <a href="{{ url_for('index') }}" class="btn btn-success">Go to Inventory</a>
+      <a href="{{ url_for('register_staff') }}" class="btn btn-primary">Register New Staff</a>
+      <a href="{{ url_for('logout') }}" class="btn btn-danger">Logout</a>
+    </div>
   </div>
 </body>
 </html>
