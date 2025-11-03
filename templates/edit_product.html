@@ -1,31 +1,32 @@
-{% extends "layout/base.html" %}
-{% block title %}Edit Product{% endblock %}
-
+{% extends 'layout/base.html' %}
+{% block title %}Edit Footwear{% endblock %}
 {% block content %}
-<div class="container mt-5" style="max-width: 600px;">
+<div class="container mt-4" style="max-width: 600px;">
   <div class="card shadow p-4">
-    <h3 class="text-center mb-4">✏️ Edit Product</h3>
-
-    <form method="POST" action="{{ url_for('edit_product', id=product.id) }}">
+    <h3 class="text-center mb-3">Edit Footwear</h3>
+    <form method="POST" enctype="multipart/form-data">
       <div class="mb-3">
-        <label class="form-label">Product Name</label>
-        <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
+        <label>Footwear Name</label>
+        <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
       </div>
-
       <div class="mb-3">
-        <label class="form-label">Quantity</label>
-        <input type="number" name="quantity" class="form-control" value="{{ product.quantity }}" min="0" required>
+        <label>Stock Quantity</label>
+        <input type="number" name="stock" value="{{ product.stock }}" class="form-control" required>
       </div>
-
       <div class="mb-3">
-        <label class="form-label">Price (₱)</label>
-        <input type="number" name="price" class="form-control" value="{{ product.price }}" step="0.01" min="0" required>
+        <label>Price (₱)</label>
+        <input type="number" step="0.01" name="price" value="{{ product.price }}" class="form-control" required>
       </div>
-
-      <div class="d-flex justify-content-between">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">⬅ Back</a>
-        <button type="submit" class="btn btn-primary">Update Product</button>
+      <div class="mb-3">
+        <label>Change Photo (optional)</label>
+        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png">
+        {% if product.image %}
+          <div class="mt-2">
+            <img src="{{ url_for('static', filename='uploads/' + product.image) }}" alt="Footwear" width="100">
+          </div>
+        {% endif %}
       </div>
+      <button type="submit" class="btn btn-success w-100">Save Changes</button>
     </form>
   </div>
 </div>

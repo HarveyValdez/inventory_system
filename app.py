@@ -1,18 +1,39 @@
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
+import os
+from datetime import datetime
+from werkzeug.utils import secure_filename
 
 # =====================================================
 # APP CONFIGURATION
 # =====================================================
-app = Flask(__name__)
-app.secret_key = 'your_secret_key'  # Change this for security
 
+app = Flask(__name__)
+app.secret_key = 'your_secret_key'  # change this to something secure
+
+# Database connection (same as before)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/inventory_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
+# =====================================================
+# UPLOAD SETTINGS
+# =====================================================
+
+UPLOAD_FOLDER = os.path.join('static', 'uploads')
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+# =====================================================
+# INITIALIZE EXTENSIONS
+# =====================================================
+
 db = SQLAlchemy(app)
 bcrypt = Bcrypt(app)
+
 
 # =====================================================
 # DATABASE MODELS
@@ -25,9 +46,13 @@ class User(db.Model):
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(100), nullable=False)
-    quantity = db.Column(db.Integer, default=0)
-    price = db.Column(db.Float, default=0.0)
+    name = db.Column(db.String(100))
+    stock = db.Column(db.Integer)  # renamed from quantity
+    price = db.Column(db.Float)
+    image = db.Column(db.String(255), nullable=True)
+    date_added = db.Column(db.Date)
+    time_added = db.Column(db.Time)
+
 
 # =====================================================
 # AUTHENTICATION ROUTES
@@ -123,42 +148,68 @@ def index():
 @app.route('/add', methods=['GET', 'POST'])
 def add_product():
     if 'role' not in session or session['role'] != 'admin':
-        flash("Access denied: Admins only.", "danger")
+        flash('Access denied: Admins only', 'danger')
         return redirect(url_for('index'))
 
     if request.method == 'POST':
         name = request.form['name']
-        quantity = int(request.form['quantity'])
-        price = float(request.form['price'])
+        stock = request.form['stock']
+        price = request.form['price']
 
-        new_product = Product(name=name, quantity=quantity, price=price)
+        # Optional image upload
+        image_file = request.files.get('image')
+        filename = None
+        if image_file and allowed_file(image_file.filename):
+            filename = secure_filename(image_file.filename)
+            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+
+        # Add timestamp
+        now = datetime.now()
+
+        new_product = Product(
+            name=name,
+            stock=stock,
+            price=price,
+            image=filename,
+            date_added=now.date(),
+            time_added=now.time()
+        )
         db.session.add(new_product)
         db.session.commit()
 
-        flash("Product added successfully!", "success")
+        flash('Footwear item added successfully!', 'success')
         return redirect(url_for('index'))
 
     return render_template('add_product.html')
 
 
+
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
 def edit_product(id):
     if 'role' not in session or session['role'] != 'admin':
-        flash("Access denied: Admins only.", "danger")
+        flash('Access denied: Admins only', 'danger')
         return redirect(url_for('index'))
 
     product = Product.query.get_or_404(id)
 
     if request.method == 'POST':
         product.name = request.form['name']
-        product.quantity = int(request.form['quantity'])
-        product.price = float(request.form['price'])
-        db.session.commit()
+        product.stock = request.form['stock']   # ✅ corrected name
+        product.price = request.form['price']
 
-        flash("Product updated successfully!", "success")
+        # Optional: update image if admin uploads a new one
+        image_file = request.files.get('image')
+        if image_file and allowed_file(image_file.filename):
+            filename = secure_filename(image_file.filename)
+            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            product.image = filename
+
+        db.session.commit()
+        flash('Footwear updated successfully!', 'success')
         return redirect(url_for('index'))
 
     return render_template('edit_product.html', product=product)
+
 
 
 @app.route('/delete/<int:id>')
