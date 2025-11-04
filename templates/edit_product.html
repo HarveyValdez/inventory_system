@@ -1,33 +1,85 @@
 {% extends 'layout/base.html' %}
 {% block title %}Edit Footwear{% endblock %}
 {% block content %}
-<div class="container mt-4" style="max-width: 600px;">
+
+<div class="container mt-5" style="max-width: 700px;">
   <div class="card shadow p-4">
-    <h3 class="text-center mb-3">Edit Footwear</h3>
+    <h3 class="text-center mb-3">✏️ Edit Footwear Details</h3>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
     <form method="POST" enctype="multipart/form-data">
-      <div class="mb-3">
-        <label>Footwear Name</label>
-        <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+      <div class="row mb-3">
+        <div class="col">
+          <label>Footwear Name</label>
+          <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+        </div>
+        <div class="col">
+          <label>Brand</label>
+          <input type="text" name="brand" value="{{ product.brand }}" class="form-control">
+        </div>
       </div>
-      <div class="mb-3">
-        <label>Stock Quantity</label>
-        <input type="number" name="stock" value="{{ product.stock }}" class="form-control" required>
+
+      <div class="row mb-3">
+        <div class="col">
+          <label>Category</label>
+          <select name="category" class="form-select">
+            {% for cat in ['Sneakers', 'Running', 'Boots', 'Sandals', 'Formal'] %}
+              <option value="{{ cat }}" {% if product.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col">
+          <label>Size</label>
+          <input type="text" name="size" value="{{ product.size }}" class="form-control">
+        </div>
+        <div class="col">
+          <label>Unit</label>
+          <select name="size_unit" class="form-select">
+            {% for unit in ['US', 'UK', 'EU', 'CM', 'PH'] %}
+              <option value="{{ unit }}" {% if product.size_unit == unit %}selected{% endif %}>{{ unit }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
-      <div class="mb-3">
-        <label>Price (₱)</label>
-        <input type="number" step="0.01" name="price" value="{{ product.price }}" class="form-control" required>
+
+      <div class="row mb-3">
+        <div class="col">
+          <label>Stock Quantity</label>
+          <input type="number" name="stock" value="{{ product.stock }}" class="form-control" required>
+        </div>
+        <div class="col">
+          <label>Price (₱)</label>
+          <input type="number" name="price" value="{{ product.price }}" class="form-control" step="0.01" required>
+        </div>
       </div>
+
       <div class="mb-3">
-        <label>Change Photo (optional)</label>
-        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png">
+        <label>Change Image (optional)</label>
+        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.gif">
         {% if product.image %}
-          <div class="mt-2">
-            <img src="{{ url_for('static', filename='uploads/' + product.image) }}" alt="Footwear" width="100">
-          </div>
+        <div class="mt-2">
+          <small>Current Image:</small><br>
+          <img src="{{ url_for('static', filename='uploads/' + product.image) }}"
+               alt="Current image"
+               class="img-thumbnail"
+               style="max-width: 120px;">
+        </div>
         {% endif %}
       </div>
-      <button type="submit" class="btn btn-success w-100">Save Changes</button>
+
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary w-100 mt-2">Cancel</a>
+      </div>
     </form>
   </div>
 </div>
+
 {% endblock %}

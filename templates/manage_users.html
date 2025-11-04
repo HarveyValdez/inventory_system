@@ -6,6 +6,12 @@
   <h2 class="text-center mb-4">👥 Manage Staff Accounts</h2>
 
   {% if users %}
+
+  <form method="GET" action="{{ url_for('search_users') }}" class="d-flex mb-3">
+      <input type="text" name="query" class="form-control me-2" placeholder="Search user..." value="{{ search_query if search_query else '' }}">
+      <button type="submit" class="btn btn-outline-primary">Search</button>
+  </form>
+
     <table class="table table-bordered table-striped text-center">
       <thead class="table-dark">
         <tr>

@@ -49,9 +49,14 @@ class Product(db.Model):
     name = db.Column(db.String(100))
     stock = db.Column(db.Integer)  # renamed from quantity
     price = db.Column(db.Float)
-    image = db.Column(db.String(255), nullable=True)
+    image = db.Column(db.String(200), nullable=True)
     date_added = db.Column(db.Date)
     time_added = db.Column(db.Time)
+    size = db.Column(db.String(10))
+    size_unit = db.Column(db.String(5))
+    brand = db.Column(db.String(50))
+    category = db.Column(db.String(50))
+
 
 
 # =====================================================
@@ -141,8 +146,21 @@ def index():
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    products = Product.query.all()
-    return render_template('index.html', products=products)
+    search_query = request.args.get('query', '')
+
+    if search_query:
+        products = Product.query.filter(
+            (Product.name.like(f"%{search_query}%")) |
+            (Product.brand.like(f"%{search_query}%")) |
+            (Product.category.like(f"%{search_query}%")) |
+            (Product.size.like(f"%{search_query}%")) |
+            (Product.size_unit.like(f"%{search_query}%"))
+        ).all()
+    else:
+        products = Product.query.all()
+
+    return render_template('index.html', products=products, search_query=search_query)
+
 
 
 @app.route('/add', methods=['GET', 'POST'])
@@ -153,36 +171,39 @@ def add_product():
 
     if request.method == 'POST':
         name = request.form['name']
-        stock = request.form['stock']
-        price = request.form['price']
-        image_file = request.files.get('image')
+        stock = int(request.form['stock'])
+        price = float(request.form['price'])
+        brand = request.form.get('brand')
+        category = request.form.get('category')
+        size = request.form.get('size')
+        size_unit = request.form.get('size_unit')
 
+        image = request.files.get('image')
         filename = None
-        if image_file and image_file.filename != '':
-            if allowed_file(image_file.filename):
-                filename = secure_filename(image_file.filename)
-                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                image_file.save(image_path)
-            else:
-                flash('Invalid image format! Please upload JPG, JPEG, PNG, or GIF.', 'danger')
-                return redirect(url_for('add_product'))
+        if image and image.filename:
+            filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
 
-        # ✅ create the product after file is ready
         new_product = Product(
             name=name,
             stock=stock,
             price=price,
+            brand=brand,
+            category=category,
+            size=size,
+            size_unit=size_unit,
             image=filename,
             date_added=datetime.now().date(),
             time_added=datetime.now().time()
         )
-
         db.session.add(new_product)
         db.session.commit()
+
         flash('Footwear added successfully!', 'success')
         return redirect(url_for('index'))
 
     return render_template('add_product.html')
+
 
 
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -195,19 +216,19 @@ def edit_product(id):
 
     if request.method == 'POST':
         product.name = request.form['name']
-        product.stock = request.form['stock']
-        product.price = request.form['price']
+        product.brand = request.form.get('brand')
+        product.category = request.form.get('category')
+        product.size = request.form.get('size')
+        product.size_unit = request.form.get('size_unit')
+        product.stock = int(request.form['stock'])
+        product.price = float(request.form['price'])
 
-        image_file = request.files.get('image')
-        if image_file and image_file.filename != '':
-            if allowed_file(image_file.filename):
-                filename = secure_filename(image_file.filename)
-                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-                image_file.save(image_path)
-                product.image = filename  # ✅ now safe to use
-            else:
-                flash('Invalid image format! Please upload PNG, JPG, JPEG, or GIF.', 'danger')
-                return redirect(url_for('edit_product', id=id))
+        # Handle image update
+        image = request.files.get('image')
+        if image and image.filename:
+            filename = secure_filename(image.filename)
+            image.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            product.image = filename
 
         db.session.commit()
         flash('Product updated successfully!', 'success')
@@ -273,6 +294,40 @@ def create_admin():
     db.session.add(new_admin)
     db.session.commit()
     print('Admin user created successfully!')
+
+# =====================================================
+# Search Function
+# =====================================================
+@app.route('/search_inventory', methods=['GET'])
+def search_inventory():
+    if 'username' not in session:
+        return redirect(url_for('login'))
+
+    query = request.args.get('query', '')
+    if query:
+        products = Product.query.filter(Product.name.like(f"%{query}%")).all()
+    else:
+        products = Product.query.all()
+
+    return render_template('index.html', products=products, search_query=query)
+
+# =====================================================
+# Search Users
+# =====================================================
+@app.route('/search_users', methods=['GET'])
+def search_users():
+    if 'role' not in session or session['role'] != 'admin':
+        flash('Access denied: Admins only', 'danger')
+        return redirect(url_for('index'))
+
+    query = request.args.get('query', '')
+    if query:
+        users = User.query.filter(User.username.like(f"%{query}%")).all()
+    else:
+        users = User.query.all()
+
+    return render_template('manage_users.html', users=users, search_query=query)
+
 
 # =====================================================
 # RUN APP
