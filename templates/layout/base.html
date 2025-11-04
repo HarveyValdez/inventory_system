@@ -1,28 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>{% block title %}Inventory System{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-  {% include 'layout/navbar.html' %}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Footwear Inventory{% endblock %}</title>
 
-  <div class="container mt-4">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+  <!-- Bootstrap -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Your custom styles -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  {% block head %}{% endblock %}
+</head>
+<body class="app-body">
+
+  <!-- Animated bubble canvas (pure CSS/HTML will use .bubbles) -->
+  <div class="bubbles" aria-hidden="true">
+    <div class="bubble b1"></div>
+    <div class="bubble b2"></div>
+    <div class="bubble b3"></div>
+    <div class="bubble b4"></div>
+    <div class="bubble b5"></div>
   </div>
 
-  {% block content %}{% endblock %}
+  <!-- NAV -->
+  <nav class="nav-minimal navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand brand" href="{{ url_for('index') }}">📦 Footwear</a>
 
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav ms-auto align-items-lg-center">
+          {% if session.get('username') %}
+            <li class="nav-item"><span class="nav-user">Hi, {{ session['username'] }}</span></li>
+
+            {% if session.get('role') == 'admin' %}
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('register_staff') }}">Add Staff</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('manage_users') }}">Manage Users</a></li>
+            {% elif session.get('role') == 'staff' %}
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('staff_dashboard') }}">Dashboard</a></li>
+            {% endif %}
+
+            <li class="nav-item"><a class="nav-link btn-ghost" href="{{ url_for('logout') }}">Logout</a></li>
+          {% else %}
+            <li class="nav-item"><a class="nav-link btn-ghost" href="{{ url_for('login') }}">Login</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main page container -->
+  <main class="main-container">
+    <div class="container py-4">
+      <!-- shared flash messages area -->
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer-minimal text-center">
+    <small>© {{ config.SITE_NAME if config.SITE_NAME is defined else 'Footwear Inventory' }} — Minimal UI</small>
+  </footer>
+
+
+  <!-- Bootstrap + tiny script for accessibility of modal triggers -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Optional tiny JS for interactive tweaks (no heavy libraries) -->
+  <script>
+    // progressive small tweak: make images open in modal if attribute present
+    document.addEventListener('click', function(e) {
+      const tgt = e.target;
+      if (tgt.matches && tgt.matches('.img-enlarge')) {
+        const src = tgt.getAttribute('data-src') || tgt.src;
+        const modalHtml = `
+          <div class="modal fade" id="__imgPreview" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+              <div class="modal-content bg-transparent border-0">
+                <div class="modal-body p-0">
+                  <img src="${src}" class="img-fluid rounded" style="width:100%;">
+                </div>
+              </div>
+            </div>
+          </div>`;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+        const modalEl = document.getElementById('__imgPreview');
+        const bsModal = new bootstrap.Modal(modalEl);
+        bsModal.show();
+        modalEl.addEventListener('hidden.bs.modal', () => modalEl.remove());
+      }
+    });
+  </script>
+
+  {% block scripts %}{% endblock %}
 </body>
 </html>
