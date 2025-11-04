@@ -21,7 +21,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 # =====================================================
 
 UPLOAD_FOLDER = os.path.join('static', 'uploads')
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
@@ -155,33 +155,34 @@ def add_product():
         name = request.form['name']
         stock = request.form['stock']
         price = request.form['price']
-
-        # Optional image upload
         image_file = request.files.get('image')
+
         filename = None
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        if image_file and image_file.filename != '':
+            if allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(image_path)
+            else:
+                flash('Invalid image format! Please upload JPG, JPEG, PNG, or GIF.', 'danger')
+                return redirect(url_for('add_product'))
 
-        # Add timestamp
-        now = datetime.now()
-
+        # ✅ create the product after file is ready
         new_product = Product(
             name=name,
             stock=stock,
             price=price,
             image=filename,
-            date_added=now.date(),
-            time_added=now.time()
+            date_added=datetime.now().date(),
+            time_added=datetime.now().time()
         )
+
         db.session.add(new_product)
         db.session.commit()
-
-        flash('Footwear item added successfully!', 'success')
+        flash('Footwear added successfully!', 'success')
         return redirect(url_for('index'))
 
     return render_template('add_product.html')
-
 
 
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
@@ -194,21 +195,26 @@ def edit_product(id):
 
     if request.method == 'POST':
         product.name = request.form['name']
-        product.stock = request.form['stock']   # ✅ corrected name
+        product.stock = request.form['stock']
         product.price = request.form['price']
 
-        # Optional: update image if admin uploads a new one
         image_file = request.files.get('image')
-        if image_file and allowed_file(image_file.filename):
-            filename = secure_filename(image_file.filename)
-            image_file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            product.image = filename
+        if image_file and image_file.filename != '':
+            if allowed_file(image_file.filename):
+                filename = secure_filename(image_file.filename)
+                image_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                image_file.save(image_path)
+                product.image = filename  # ✅ now safe to use
+            else:
+                flash('Invalid image format! Please upload PNG, JPG, JPEG, or GIF.', 'danger')
+                return redirect(url_for('edit_product', id=id))
 
         db.session.commit()
-        flash('Footwear updated successfully!', 'success')
+        flash('Product updated successfully!', 'success')
         return redirect(url_for('index'))
 
     return render_template('edit_product.html', product=product)
+
 
 
 
