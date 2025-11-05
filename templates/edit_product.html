@@ -65,12 +65,30 @@
         <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.gif">
         {% if product.image %}
         <div class="mt-2">
-          <small>Current Image:</small><br>
-          <img src="{{ url_for('static', filename='uploads/' + product.image) }}"
-               alt="Current image"
-               class="img-thumbnail"
-               style="max-width: 120px;">
-        </div>
+            <small class="text-light">Current Image:</small><br>
+            <img 
+              src="{{ url_for('static', filename='uploads/' + product.image) }}"
+              alt="Current image"
+              class="img-thumbnail shadow-sm"
+              style="max-width:120px; cursor:pointer; border-radius:10px;"
+              data-bs-toggle="modal"
+              data-bs-target="#previewModal{{ product.id }}"
+            >
+          </div>
+
+          <!-- Modal for current image -->
+          <div class="modal fade" id="previewModal{{ product.id }}" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+              <div class="modal-content bg-transparent border-0 shadow-lg">
+                <img 
+                  src="{{ url_for('static', filename='uploads/' + product.image) }}"
+                  class="img-fluid rounded shadow-lg"
+                  style="box-shadow:0 0 20px rgba(139,233,253,0.4);"
+                >
+              </div>
+            </div>
+          </div>
+
         {% endif %}
       </div>
 

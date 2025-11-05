@@ -98,7 +98,6 @@ html, body {
   color: #f1f1f1;
   border-collapse: collapse;
 }
-
 .table thead th {
   background: rgba(255, 255, 255, 0.1);
   color: #fff;
@@ -107,12 +106,15 @@ html, body {
 
 .table tbody tr {
   background: rgba(255, 255, 255, 0.05);
-  transition: background 0.3s ease, transform 0.2s ease;
+  transition: background 0.3s ease, box-shadow 0.2s ease;
 }
+
 .table tbody tr:hover {
   background: rgba(255, 255, 255, 0.15);
-  transform: scale(1.01);
+  /* Removed transform to stop modal flickering */
+  box-shadow: 0 0 12px rgba(123, 97, 255, 0.25);
 }
+
 .table th, .table td {
   text-align: center;
   vertical-align: middle;
@@ -264,3 +266,4 @@ select.form-select option {
 select.form-select option[disabled] {
   color: rgba(255, 255, 255, 0.4);
 }
+
