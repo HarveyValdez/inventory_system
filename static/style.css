@@ -106,14 +106,24 @@ html, body {
 
 .table tbody tr {
   background: rgba(255, 255, 255, 0.05);
-  transition: background 0.3s ease, box-shadow 0.2s ease;
+  transition: background 0.4s ease, box-shadow 0.4s ease;
 }
 
 .table tbody tr:hover {
   background: rgba(255, 255, 255, 0.15);
-  /* Removed transform to stop modal flickering */
-  box-shadow: 0 0 12px rgba(123, 97, 255, 0.25);
+  box-shadow: 0 0 15px rgba(123, 97, 255, 0.25);
+  animation: softPulse 1.6s infinite ease-in-out;
 }
+
+@keyframes softPulse {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(123, 97, 255, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 22px rgba(139, 233, 253, 0.45);
+  }
+}
+
 
 .table th, .table td {
   text-align: center;
@@ -267,3 +277,58 @@ select.form-select option[disabled] {
   color: rgba(255, 255, 255, 0.4);
 }
 
+/* ===========================
+   📱 RESPONSIVE ADJUSTMENTS
+   =========================== */
+@media (max-width: 768px) {
+  /* Body padding for breathing room */
+  body {
+    padding: 0 10px;
+  }
+
+  /* Navbar: stack links */
+  .nav-minimal .navbar-nav {
+    flex-direction: column;
+    gap: 8px;
+    text-align: center;
+  }
+
+  .navbar-brand {
+    font-size: 1rem;
+  }
+
+  /* Tables: make scrollable */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .table {
+    font-size: 0.85rem;
+    width: 100%;
+  }
+
+  /* Cards: full width */
+  .card {
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Buttons & forms: fill width */
+  .btn,
+  form .btn-primary,
+  form .btn-success {
+    width: 100%;
+  }
+
+  input.form-control,
+  select.form-select,
+  textarea.form-control {
+    font-size: 0.9rem;
+  }
+
+  /* Login container: fit smaller screens */
+  .login-container {
+    padding: 1.2rem;
+  }
+}

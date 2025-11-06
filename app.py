@@ -12,7 +12,7 @@ from werkzeug.utils import secure_filename
 app = Flask(__name__)
 app.secret_key = 'your_secret_key'  # change this to something secure
 
-# Database connection (same as before)
+# Database connection 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/inventory_db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
@@ -36,7 +36,7 @@ bcrypt = Bcrypt(app)
 
 
 # =====================================================
-# DATABASE MODELS
+# DATABASE MODEL
 # =====================================================
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -333,4 +333,5 @@ def search_users():
 # RUN APP
 # =====================================================
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
+
