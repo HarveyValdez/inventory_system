@@ -1,12 +1,80 @@
-{% extends "layout/base.html" %}
+{% extends 'layout/base.html' %}
 {% block title %}Admin Dashboard{% endblock %}
 {% block content %}
-<div class="text-center mt-5">
-  <h2>👑 Welcome, {{ session['username'] }} (Admin)</h2>
-  <p>You can manage all inventory items and users here.</p>
-  <div class="d-flex justify-content-center gap-3 flex-wrap mt-4">
-    <a href="{{ url_for('index') }}" class="btn btn-success">Go to Inventory</a>
-    <a href="{{ url_for('register_staff') }}" class="btn btn-primary">Register New Staff</a>
+<div class="container mt-4">
+  <h3 class="mb-3"> Welcome, {{ username }} (Admin)</h3>
+
+  <!-- Dashboard cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Total Items</h6>
+        <h3>{{ total_items }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Low Stock Items</h6>
+        <h3>{{ low_stock_count }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Items Added Today</h6>
+        <h3>{{ items_added_today }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Total Staff Accounts</h6>
+        <h3>{{ total_staff }}</h3>
+      </div>
+    </div>
   </div>
+
+  <!-- Low stock details -->
+  {% if low_stock_items %}
+  <div class="alert alert-warning">
+    <strong>Low stock:</strong>
+    {% for p in low_stock_items %}
+      {{ p.name }} ({{ p.stock }}){% if not loop.last %}, {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Recent activities -->
+  <div class="row">
+    <div class="col-md-7">
+      <div class="card p-3 mb-3">
+        <h5>Recent Activity</h5>
+        <table class="table table-sm light-table">
+
+          <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
+          <tbody>
+            {% for a in recent_activities %}
+              <tr>
+                <td>{{ a.username }}</td>
+                <td>{{ a.action }}</td>
+                <td>{{ a.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="col-md-5">
+      <div class="card p-3 mb-3">
+        <h5>Recent Logins</h5>
+        <ul class="list-unstyled mb-0">
+          {% for l in recent_logins %}
+            <li><strong>{{ l.username }}</strong> — {{ l.timestamp.strftime("%Y-%m-%d %H:%M:%S") }} <br><small class="text-muted">{{ l.ip_address }}</small></li>
+            {% if not loop.last %}<hr>{% endif %}
+          {% endfor %}
+        </ul>
+      </div>
+    </div>
+  </div>
+
 </div>
 {% endblock %}

@@ -4,7 +4,16 @@ from flask_bcrypt import Bcrypt
 import os
 from datetime import datetime
 from werkzeug.utils import secure_filename
+from functools import wraps
 
+def admin_only(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'role' not in session or session['role'] != 'admin':
+            flash("Access denied: Admins only.", "danger")
+            return redirect(url_for('index'))
+        return f(*args, **kwargs)
+    return decorated_function
 # =====================================================
 # APP CONFIGURATION
 # =====================================================
@@ -57,6 +66,34 @@ class Product(db.Model):
     brand = db.Column(db.String(50))
     category = db.Column(db.String(50))
 
+# =====================================================
+#ActivityLog and LoginActivity
+# =====================================================
+class ActivityLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    username = db.Column(db.String(50))
+    action = db.Column(db.String(100))
+    product_name = db.Column(db.String(100))
+    timestamp = db.Column(db.DateTime, default=datetime.now)
+
+
+class StockAlert(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    product_name = db.Column(db.String(100))
+    stock = db.Column(db.Integer)
+    alert_type = db.Column(db.String(50))  # "Low Stock" or "Out of Stock"
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+class LoginActivity(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    username = db.Column(db.String(100))
+    action = db.Column(db.String(50))
+    ip_address = db.Column(db.String(45))  # new column for IPv4/IPv6
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 
 # =====================================================
@@ -71,9 +108,22 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and bcrypt.check_password_hash(user.password, password):
+            # Set session data
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
+
+            # Record login activity
+            ip = request.remote_addr
+            login_log = LoginActivity(
+                user_id=user.id,
+                username=user.username,
+                action='Login',
+                ip_address=ip
+            )
+            db.session.add(login_log)
+            db.session.commit()
+
             flash(f"Welcome, {user.username}!", "success")
 
             # Redirect based on role
@@ -86,9 +136,23 @@ def login():
 
     return render_template('login.html')
 
-
 @app.route('/logout')
 def logout():
+    if 'user_id' in session:
+        user_id = session.get('user_id')
+        username = session.get('username')
+        ip = request.remote_addr
+
+        # Record logout activity
+        logout_log = LoginActivity(
+            user_id=user_id,
+            username=username,
+            action='Logout',
+            ip_address=ip
+        )
+        db.session.add(logout_log)
+        db.session.commit()
+
     session.clear()
     flash("You have been logged out.", "info")
     return redirect(url_for('login'))
@@ -101,7 +165,33 @@ def admin_dashboard():
     if 'role' not in session or session['role'] != 'admin':
         flash("Access denied: Admins only.", "danger")
         return redirect(url_for('login'))
-    return render_template('admin_dashboard.html', username=session['username'])
+
+    # Dashboard stats
+    total_items = Product.query.count()
+    low_stock_items = Product.query.filter(Product.stock < 5).all()  # threshold 5
+    low_stock_count = len(low_stock_items)
+
+    today = datetime.utcnow().date()
+    items_added_today = Product.query.filter(db.func.date(Product.date_added) == today).count()
+
+    total_staff = User.query.filter(User.role == 'staff').count()
+
+    # recent activity logs and login reports (last 20)
+    recent_activities = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(20).all()
+    recent_logins = LoginActivity.query.order_by(LoginActivity.timestamp.desc()).limit(20).all()
+
+    return render_template(
+        'admin_dashboard.html',
+        username=session['username'],
+        total_items=total_items,
+        low_stock_items=low_stock_items,
+        low_stock_count=low_stock_count,
+        items_added_today=items_added_today,
+        total_staff=total_staff,
+        recent_activities=recent_activities,
+        recent_logins=recent_logins
+    )
+
 
 
 @app.route('/staff_dashboard')
@@ -163,12 +253,12 @@ def index():
 
 
 
+# =====================================================
+# ADD PRODUCT (With Activity Log + Stock Check)
+# =====================================================
 @app.route('/add', methods=['GET', 'POST'])
+@admin_only
 def add_product():
-    if 'role' not in session or session['role'] != 'admin':
-        flash('Access denied: Admins only', 'danger')
-        return redirect(url_for('index'))
-
     if request.method == 'POST':
         name = request.form['name']
         stock = int(request.form['stock'])
@@ -199,19 +289,39 @@ def add_product():
         db.session.add(new_product)
         db.session.commit()
 
+        # 🧾 Log Activity
+        log = ActivityLog(
+            user_id=session['user_id'],
+            username=session['username'],
+            action="Added new product",
+            product_name=name
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        # 🚨 Check for Low Stock
+        if stock <= 5:
+            alert = StockAlert(
+                product_id=new_product.id,
+                product_name=new_product.name,
+                stock=new_product.stock,
+                alert_type="Low Stock" if stock > 0 else "Out of Stock"
+            )
+            db.session.add(alert)
+            db.session.commit()
+
         flash('Footwear added successfully!', 'success')
         return redirect(url_for('index'))
 
     return render_template('add_product.html')
 
 
-
+# =====================================================
+# EDIT PRODUCT (With Activity Log + Stock Update Check)
+# =====================================================
 @app.route('/edit/<int:id>', methods=['GET', 'POST'])
+@admin_only
 def edit_product(id):
-    if 'role' not in session or session['role'] != 'admin':
-        flash('Access denied: Admins only', 'danger')
-        return redirect(url_for('index'))
-
     product = Product.query.get_or_404(id)
 
     if request.method == 'POST':
@@ -231,22 +341,60 @@ def edit_product(id):
             product.image = filename
 
         db.session.commit()
+
+        # 🧾 Log Activity
+        log = ActivityLog(
+            user_id=session['user_id'],
+            username=session['username'],
+            action="Edited product details",
+            product_name=product.name
+        )
+        db.session.add(log)
+        db.session.commit()
+
+        # 🚨 Update Low Stock Alerts
+        existing_alert = StockAlert.query.filter_by(product_id=product.id).first()
+        if product.stock <= 5:
+            if not existing_alert:
+                alert = StockAlert(
+                    product_id=product.id,
+                    product_name=product.name,
+                    stock=product.stock,
+                    alert_type="Low Stock" if product.stock > 0 else "Out of Stock"
+                )
+                db.session.add(alert)
+            else:
+                existing_alert.stock = product.stock
+                existing_alert.alert_type = "Low Stock" if product.stock > 0 else "Out of Stock"
+        elif existing_alert:
+            db.session.delete(existing_alert)
+
+        db.session.commit()
+
         flash('Product updated successfully!', 'success')
         return redirect(url_for('index'))
 
     return render_template('edit_product.html', product=product)
 
 
-
-
+# =====================================================
+# DELETE PRODUCT (With Activity Log)
+# =====================================================
 @app.route('/delete/<int:id>')
+@admin_only
 def delete_product(id):
-    if 'role' not in session or session['role'] != 'admin':
-        flash("Access denied: Admins only.", "danger")
-        return redirect(url_for('index'))
-
     product = Product.query.get_or_404(id)
     db.session.delete(product)
+    db.session.commit()
+
+    # 🧾 Log Activity
+    log = ActivityLog(
+        user_id=session['user_id'],
+        username=session['username'],
+        action="Deleted product",
+        product_name=product.name
+    )
+    db.session.add(log)
     db.session.commit()
 
     flash("Product deleted successfully!", "info")
@@ -327,6 +475,23 @@ def search_users():
         users = User.query.all()
 
     return render_template('manage_users.html', users=users, search_query=query)
+
+@app.route('/activity_logs')
+@admin_only
+def activity_logs():
+    logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).all()
+    return render_template('activity_logs.html', logs=logs)
+
+
+@app.context_processor
+def inject_admin_alerts():
+    low_stock_products = Product.query.filter(Product.stock < 5).all()
+    low_stock_count = len(low_stock_products)
+
+    return {
+        'low_stock_products': low_stock_products,
+        'low_stock_count': low_stock_count
+    }
 
 
 # =====================================================

@@ -332,3 +332,89 @@ select.form-select option[disabled] {
     padding: 1.2rem;
   }
 }
+
+/* ===========================
+   DASHBOARD CARD STYLES
+   =========================== */
+.card {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  text-align: center;
+  padding: 20px;
+  border-radius: 15px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+.card h5 {
+  color: #00ffff;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.card p {
+  color: #ffffff;
+  font-size: 20px;
+}
+
+/* ===========================
+   TABLE STYLES
+   =========================== */
+
+/* Default (white text for dark backgrounds) */
+.table th,
+.table td {
+  text-align: center;
+  vertical-align: middle;
+  color: #f1f1f1;
+}
+
+/* Bright header style for dark tables */
+.table thead th {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
+  text-shadow: 0 0 6px #00ffff;
+}
+
+/* Hover effect for dark tables */
+.table tbody tr:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* ===========================
+   LIGHT TABLE VARIANTS (for sections like Manage Staff / Inventory)
+   =========================== */
+.table-light th,
+.table-light td {
+  color: #222 !important;
+}
+
+.table-light thead th {
+  background: rgba(230, 230, 230, 0.7);
+  color: #111 !important;
+  text-shadow: none;
+}
+
+.table-light tbody tr:hover {
+  background: rgba(240, 240, 240, 0.9);
+}
+
+/* ===== Light text fixes for specific sections ===== */
+.table-light, 
+.light-table, 
+.card .table-light, 
+.card .light-table {
+  color: #222 !important;
+}
+
+.table-light th, 
+.table-light td, 
+.light-table th, 
+.light-table td {
+  color: #222 !important;
+  background-color: rgba(255,255,255,0.85);
+}
+
+.table-light tbody tr:hover, 
+.light-table tbody tr:hover {
+  background: rgba(0,0,0,0.05);
+}
