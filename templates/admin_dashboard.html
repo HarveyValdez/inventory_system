@@ -43,38 +43,43 @@
   {% endif %}
 
   <!-- Recent activities -->
-  <div class="row">
-    <div class="col-md-7">
-      <div class="card p-3 mb-3">
-        <h5>Recent Activity</h5>
-        <table class="table table-sm light-table">
-
-          <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
-          <tbody>
-            {% for a in recent_activities %}
-              <tr>
-                <td>{{ a.username }}</td>
-                <td>{{ a.action }}</td>
-                <td>{{ a.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="col-md-5">
-      <div class="card p-3 mb-3">
-        <h5>Recent Logins</h5>
-        <ul class="list-unstyled mb-0">
-          {% for l in recent_logins %}
-            <li><strong>{{ l.username }}</strong> — {{ l.timestamp.strftime("%Y-%m-%d %H:%M:%S") }} <br><small class="text-muted">{{ l.ip_address }}</small></li>
-            {% if not loop.last %}<hr>{% endif %}
+  <div class="card p-3 mb-3">
+    <h5>Recent Activity</h5>
+    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+      <table class="table table-sm light-table">
+        <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
+        <tbody>
+          {% for a in recent_activities %}
+            <tr>
+              <td>{{ a.username }}</td>
+              <td>{{ a.action }}</td>
+              <td>{{ a.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+            </tr>
           {% endfor %}
-        </ul>
-      </div>
+        </tbody>
+      </table>
     </div>
   </div>
+
+
+  <div class="card p-3 mb-3">
+    <h5>Recent Logins</h5>
+    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+      <table class="table table-sm light-table">
+        <thead><tr><th>Username</th><th>IP Address</th><th>Time</th></tr></thead>
+       <tbody>
+          {% for log in recent_logins %}
+            <tr>
+              <td>{{ log.username }}</td>
+              <td>{{ log.ip_address }}</td>
+              <td>{{ log.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
 
 </div>
 {% endblock %}
