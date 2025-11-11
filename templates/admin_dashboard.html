@@ -41,7 +41,26 @@
     {% endfor %}
   </div>
   {% endif %}
-
+  <!-- 📅 DATE RANGE FILTER -->
+  <div class="card p-3 mb-3">
+      <h5>📅 Filter Recent Activities</h5>
+      <form method="GET" class="row g-2">
+          <div class="col-md-4">
+              <label class="form-label">Start Date</label>
+              <input type="date" name="start_date" class="form-control" 
+                    value="{{ request.args.get('start_date', '') }}">
+          </div>
+          <div class="col-md-4">
+              <label class="form-label">End Date</label>
+              <input type="date" name="end_date" class="form-control" 
+                    value="{{ request.args.get('end_date', '') }}">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary me-2">Apply Filter</button>
+              <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Clear</a>
+          </div>
+      </form>
+  </div>
   <!-- 📊 CHART SECTION - FIXED HEIGHT -->
   <div class="card p-3 mb-3">
     <h5>📊 Stock by Category</h5>

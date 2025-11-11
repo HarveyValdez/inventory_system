@@ -157,6 +157,16 @@ class LoginActivity(db.Model):
     ip_address = db.Column(db.String(45))  # IPv4/IPv6 support
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
+class StockHistory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    product_name = db.Column(db.String(100), nullable=False)
+    old_stock = db.Column(db.Integer, nullable=False)
+    new_stock = db.Column(db.Integer, nullable=False)
+    change_reason = db.Column(db.String(200))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    username = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
 # =====================================================
 # AUTHENTICATION ROUTES
@@ -279,41 +289,40 @@ def admin_dashboard():
     items_added_today = Product.query.filter(db.func.date(Product.date_added) == today).count()
     total_staff = User.query.filter(User.role == 'staff').count()
 
-    # Fetch recent activities (last 20)
-    recent_activities = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(20).all()
-    recent_logins = LoginActivity.query.order_by(LoginActivity.timestamp.desc()).limit(20).all()
+    # 📅 DATE RANGE FILTER
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    # Build queries
+    activities_query = ActivityLog.query
+    logins_query = LoginActivity.query
+    
+    if start_date:
+        start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
+        activities_query = activities_query.filter(ActivityLog.timestamp >= start_datetime)
+        logins_query = logins_query.filter(LoginActivity.timestamp >= start_datetime)
+    
+    if end_date:
+        end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
+        activities_query = activities_query.filter(ActivityLog.timestamp <= end_datetime)
+        logins_query = logins_query.filter(LoginActivity.timestamp <= end_datetime)
+
+    # Fetch filtered results (last 20)
+    recent_activities = activities_query.order_by(ActivityLog.timestamp.desc()).limit(20).all()
+    recent_logins = logins_query.order_by(LoginActivity.timestamp.desc()).limit(20).all()
 
     # 📊 CHART DATA: Stock by Category
-    try:
-        from sqlalchemy import func
-        
-        # Debug: Count total products first
-        total_products = Product.query.count()
-        print(f"DEBUG: Total products in database: {total_products}")
-        
-        chart_data = db.session.query(
-            Product.category,
-            func.sum(Product.stock).label('total_stock')
-        ).filter(
-            Product.category.isnot(None),
-            Product.category != ''
-        ).group_by(Product.category).all()
-        
-        print(f"DEBUG: Chart data retrieved: {len(chart_data)} categories")
-        for row in chart_data:
-            print(f"  - {row.category}: {row.total_stock} units")
-        
-        chart_categories = [row.category for row in chart_data]
-        chart_stocks = [row.total_stock for row in chart_data]
-        
-        # Safety check for empty data
-        if not chart_categories:
-            print("WARNING: No categories found for chart!")
-            
-    except Exception as e:
-        print(f"ERROR in chart query: {e}")
-        chart_categories = []
-        chart_stocks = []
+    from sqlalchemy import func
+    chart_data = db.session.query(
+        Product.category,
+        func.sum(Product.stock).label('total_stock')
+    ).filter(
+        Product.category.isnot(None),
+        Product.category != ''
+    ).group_by(Product.category).all()
+    
+    chart_categories = [row.category for row in chart_data]
+    chart_stocks = [row.total_stock for row in chart_data]
 
     return render_template(
         'admin_dashboard.html',
@@ -326,7 +335,9 @@ def admin_dashboard():
         recent_activities=recent_activities,
         recent_logins=recent_logins,
         chart_categories=chart_categories,
-        chart_stocks=chart_stocks
+        chart_stocks=chart_stocks,
+        start_date=start_date,
+        end_date=end_date
     )
 
 
@@ -621,22 +632,34 @@ def add_stock(product_id):
         return redirect(url_for('index'))
 
     product = Product.query.get_or_404(product_id)
+    old_stock = product.stock
     
     try:
         added_qty = int(request.form['added_qty'])
         
-        # VALIDATION
         if added_qty <= 0:
             flash("Quantity must be at least 1.", "danger")
             return redirect(url_for('index'))
             
         if added_qty > 1000:
-            flash("Maximum 1000 units can be added at once.", "danger")
+            flash("Maximum 1000 units at once.", "danger")
             return redirect(url_for('index'))
 
         product.stock += added_qty
         db.session.commit()
 
+        # ✅ LOG STOCK HISTORY
+        history = StockHistory(
+            product_id=product.id,
+            product_name=product.name,
+            old_stock=old_stock,
+            new_stock=product.stock,
+            change_reason=f"Added {added_qty} units",
+            user_id=session['user_id'],
+            username=session['username']
+        )
+        db.session.add(history)
+        
         # Log activity
         log = ActivityLog(
             user_id=session['user_id'],
@@ -651,9 +674,8 @@ def add_stock(product_id):
         return redirect(url_for('index'))
 
     except (ValueError, KeyError):
-        flash("Invalid quantity entered.", "danger")
+        flash("Invalid quantity.", "danger")
         return redirect(url_for('index'))
-
 
 @app.route('/deduct_stock/<int:product_id>', methods=['POST'])
 def deduct_stock(product_id):
@@ -666,22 +688,34 @@ def deduct_stock(product_id):
         return redirect(url_for('index'))
 
     product = Product.query.get_or_404(product_id)
+    old_stock = product.stock
     
     try:
         deduct_qty = int(request.form['deduct_qty'])
         
-        # VALIDATION
         if deduct_qty <= 0:
             flash("Quantity must be at least 1.", "danger")
             return redirect(url_for('index'))
             
         if deduct_qty > product.stock:
-            flash(f"Cannot deduct {deduct_qty} units. Only {product.stock} in stock.", "danger")
+            flash(f"Cannot deduct {deduct_qty}. Only {product.stock} in stock.", "danger")
             return redirect(url_for('index'))
 
         product.stock -= deduct_qty
         db.session.commit()
 
+        # ✅ LOG STOCK HISTORY
+        history = StockHistory(
+            product_id=product.id,
+            product_name=product.name,
+            old_stock=old_stock,
+            new_stock=product.stock,
+            change_reason=f"Deducted {deduct_qty} units",
+            user_id=session['user_id'],
+            username=session['username']
+        )
+        db.session.add(history)
+        
         # Log activity
         log = ActivityLog(
             user_id=session['user_id'],
@@ -714,7 +748,7 @@ def deduct_stock(product_id):
         return redirect(url_for('index'))
 
     except (ValueError, KeyError):
-        flash("Invalid quantity entered.", "danger")
+        flash("Invalid quantity.", "danger")
         return redirect(url_for('index'))
 
 
@@ -813,6 +847,24 @@ def export_csv():
     response.headers["Content-type"] = "text/csv"
     return response
 
+# =====================================================
+# STOCK HISTORY ROUTE
+# =====================================================
+
+@app.route('/product_history/<int:product_id>')
+def product_history(product_id):
+    if 'user_id' not in session:
+        flash("Please log in first.", "warning")
+        return redirect(url_for('login'))
+    
+    if session.get('role') not in ['admin', 'staff']:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('index'))
+    
+    product = Product.query.get_or_404(product_id)
+    histories = StockHistory.query.filter_by(product_id=product_id).order_by(StockHistory.timestamp.desc()).all()
+    
+    return render_template('product_history.html', product=product, histories=histories)
 
 # =====================================================
 # RUN APPLICATION
