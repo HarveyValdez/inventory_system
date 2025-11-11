@@ -13,7 +13,7 @@
   </form>
 
     <table class="table table-sm light-table">
-      <thead class="table-dark">
+      <thead style="background: var(--bg-tertiary);">
         <tr>
           <th>ID</th>
           <th>Username</th>
@@ -30,7 +30,7 @@
             <td>
               <a href="{{ url_for('delete_user', id=user.id) }}" 
                  class="btn btn-danger btn-sm"
-                 onclick="return confirm('Are you sure you want to delete {{ user.username }}?');">
+                 onclick="return confirm('🚨 Are you sure you want to delete user: {{ user.username }}? This cannot be undone!');">
                 Delete
               </a>
             </td>

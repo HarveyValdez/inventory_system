@@ -42,6 +42,13 @@
   </div>
   {% endif %}
 
+  <!-- Low stock warning -->
+  {% if low_stock_count > 0 %}
+  <div class="alert alert-danger">
+    <strong>🚨 Alert:</strong> {{ low_stock_count }} item(s) need immediate restocking!
+  </div>
+  {% endif %}
+
   <!-- Recent activities -->
   <div class="card p-3 mb-3">
     <h5>Recent Activity</h5>

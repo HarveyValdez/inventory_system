@@ -4,17 +4,31 @@
 <div class="mx-auto mt-5" style="max-width: 500px;">
   <div class="card shadow p-4">
     <h3 class="text-center mb-3">🧾 Register New Staff</h3>
-    <form method="POST" action="{{ url_for('register_staff') }}">
+    <form method="POST" action="{{ url_for('register_staff') }}" onsubmit="return confirmAddStaff();">
       <div class="mb-3">
         <label class="form-label">Username</label>
-        <input type="text" name="username" class="form-control" placeholder="Enter staff username" required>
+        <!-- ✅ VALIDATION: minlength & maxlength -->
+        <input type="text" name="username" class="form-control" 
+               placeholder="Enter staff username" required 
+               minlength="3" maxlength="50">
+        <small class="text-muted">Minimum 3 characters</small>
       </div>
       <div class="mb-3">
         <label class="form-label">Password</label>
-        <input type="password" name="password" class="form-control" placeholder="Enter password" required>
+        <!-- ✅ VALIDATION: minlength -->
+        <input type="password" name="password" class="form-control" 
+               placeholder="Enter password" required minlength="6">
+        <small class="text-muted">Minimum 6 characters</small>
       </div>
       <button type="submit" class="btn btn-success w-100">Register</button>
     </form>
   </div>
 </div>
+
+<script>
+function confirmAddStaff() {
+  const username = document.querySelector('input[name="username"]').value;
+  return confirm(`⚠️ Are you sure you want to add staff: ${username}?`);
+}
+</script>
 {% endblock %}

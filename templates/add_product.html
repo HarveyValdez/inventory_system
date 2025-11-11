@@ -17,11 +17,11 @@
       <div class="row mb-3">
         <div class="col">
           <label>Footwear Name</label>
-          <input type="text" name="name" class="form-control" required>
+          <input type="text" name="name" class="form-control" required maxlength="100">
         </div>
         <div class="col">
           <label>Brand</label>
-          <input type="text" name="brand" class="form-control" placeholder="e.g., Nike, Adidas">
+          <input type="text" name="brand" class="form-control" placeholder="e.g., Nike, Adidas" maxlength="50">
         </div>
       </div>
 
@@ -38,7 +38,8 @@
         </div>
         <div class="col">
           <label>Size</label>
-          <input type="text" name="size" class="form-control" placeholder="e.g., 9.5" required>
+          <input type="text" name="size" class="form-control" placeholder="e.g., 9.5" required 
+                 pattern="[0-9]+(\.[0-9])?" title="Enter a valid size (e.g., 9.5)">
         </div>
         <div class="col">
           <label>Unit</label>
@@ -55,17 +56,18 @@
       <div class="row mb-3">
         <div class="col">
           <label>Stock Quantity</label>
-          <input type="number" name="stock" class="form-control" min="0" required>
+          <input type="number" name="stock" class="form-control" min="0" max="99999" required>
         </div>
         <div class="col">
           <label>Price (₱)</label>
-          <input type="number" name="price" class="form-control" step="0.01" required>
+          <input type="number" name="price" class="form-control" step="0.01" min="0" max="999999" required>
         </div>
       </div>
 
       <div class="mb-3">
-        <label>Upload Image (optional)</label>
-        <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.gif">
+        <label class="form-label">Product Image (optional)</label>
+        <input type="file" name="image" class="form-control" accept="image/*">
+        <small class="text-muted">JPG, PNG, or GIF (max 5MB)</small>
       </div>
 
       <div class="text-center mt-3">
