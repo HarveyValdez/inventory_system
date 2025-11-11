@@ -426,9 +426,22 @@ def index():
         return redirect(url_for('login'))
 
     search_query = request.args.get('query', '').strip()
+    sort_by = request.args.get('sort', 'id')  # Default sort by ID
+    order = request.args.get('order', 'asc')  # Default order ascending
 
+    # ✅ Security: Whitelist allowed columns
+    allowed_columns = ['id', 'name', 'brand', 'category', 'size', 'stock', 'price', 'date_added']
+    if sort_by not in allowed_columns:
+        sort_by = 'id'
+    if order not in ['asc', 'desc']:
+        order = 'asc'
+
+    # Build base query
+    query = Product.query
+
+    # Apply search if present
     if search_query:
-        products = Product.query.filter(
+        query = query.filter(
             db.or_(
                 Product.name.ilike(f"%{search_query}%"),
                 Product.brand.ilike(f"%{search_query}%"),
@@ -436,11 +449,22 @@ def index():
                 Product.size.ilike(f"%{search_query}%"),
                 Product.size_unit.ilike(f"%{search_query}%")
             )
-        ).all()
-    else:
-        products = Product.query.all()
+        )
 
-    return render_template('index.html', products=products, search_query=search_query)
+    # Apply sorting
+    sort_column = getattr(Product, sort_by)
+    if order == 'desc':
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+
+    products = query.all()
+
+    return render_template('index.html', 
+                         products=products, 
+                         search_query=search_query,
+                         sort_by=sort_by,
+                         order=order)
 
 
 # =====================================================

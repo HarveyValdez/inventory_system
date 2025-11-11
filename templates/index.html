@@ -34,21 +34,49 @@
   <div class="table-responsive">
     <table class="table table-hover align-middle">
       <thead>
-        <tr>
-          <th>ID</th>
-          <th>Photo</th>
-          <th>Name</th>
-          <th>Brand</th>
-          <th>Category</th>
-          <th>Size</th>
-          <th>Stock</th>
-          <th>Price</th>
-          <th>Date Added</th>
-          <th>Time</th>
-          {% if session['role'] in ['admin', 'staff'] %}
-            <th class="text-center" style="min-width: 200px;">Actions</th>
-          {% endif %}
-        </tr>
+          <tr>
+              <th>
+                  <a href="{{ url_for('index', query=search_query, sort='id', order=('desc' if sort_by == 'id' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+                      ID {% if sort_by == 'id' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+                  </a>
+              </th>
+              <th>Photo</th>
+              <th>
+                  <a href="{{ url_for('index', query=search_query, sort='name', order=('desc' if sort_by == 'name' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+                      Name {% if sort_by == 'name' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+                  </a>
+              </th>
+              <th>
+                  <a href="{{ url_for('index', query=search_query, sort='brand', order=('desc' if sort_by == 'brand' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+                      Brand {% if sort_by == 'brand' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+                  </a>
+              </th>
+              <th>
+                  <a href="{{ url_for('index', query=search_query, sort='category', order=('desc' if sort_by == 'category' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+                      Category {% if sort_by == 'category' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+                  </a>
+              </th>
+              <th>Size</th>
+              <th>
+                  <a href="{{ url_for('index', query=search_query, sort='stock', order=('desc' if sort_by == 'stock' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+                      Stock {% if sort_by == 'stock' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+                  </a>
+              </th>
+              <th>
+                  <a href="{{ url_for('index', query=search_query, sort='price', order=('desc' if sort_by == 'price' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+                      Price {% if sort_by == 'price' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+                  </a>
+              </th>
+              <th>
+                  <a href="{{ url_for('index', query=search_query, sort='date_added', order=('desc' if sort_by == 'date_added' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+                      Date Added {% if sort_by == 'date_added' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+                  </a>
+              </th>
+              <th>Time</th>
+              {% if session['role'] in ['admin', 'staff'] %}
+                  <th class="text-center" style="min-width: 200px;">Actions</th>
+              {% endif %}
+          </tr>
       </thead>
       <tbody>
         {% for product in products %}
