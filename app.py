@@ -283,6 +283,38 @@ def admin_dashboard():
     recent_activities = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).limit(20).all()
     recent_logins = LoginActivity.query.order_by(LoginActivity.timestamp.desc()).limit(20).all()
 
+    # 📊 CHART DATA: Stock by Category
+    try:
+        from sqlalchemy import func
+        
+        # Debug: Count total products first
+        total_products = Product.query.count()
+        print(f"DEBUG: Total products in database: {total_products}")
+        
+        chart_data = db.session.query(
+            Product.category,
+            func.sum(Product.stock).label('total_stock')
+        ).filter(
+            Product.category.isnot(None),
+            Product.category != ''
+        ).group_by(Product.category).all()
+        
+        print(f"DEBUG: Chart data retrieved: {len(chart_data)} categories")
+        for row in chart_data:
+            print(f"  - {row.category}: {row.total_stock} units")
+        
+        chart_categories = [row.category for row in chart_data]
+        chart_stocks = [row.total_stock for row in chart_data]
+        
+        # Safety check for empty data
+        if not chart_categories:
+            print("WARNING: No categories found for chart!")
+            
+    except Exception as e:
+        print(f"ERROR in chart query: {e}")
+        chart_categories = []
+        chart_stocks = []
+
     return render_template(
         'admin_dashboard.html',
         username=session['username'],
@@ -292,7 +324,9 @@ def admin_dashboard():
         items_added_today=items_added_today,
         total_staff=total_staff,
         recent_activities=recent_activities,
-        recent_logins=recent_logins
+        recent_logins=recent_logins,
+        chart_categories=chart_categories,
+        chart_stocks=chart_stocks
     )
 
 
@@ -301,7 +335,26 @@ def staff_dashboard():
     if session.get('role') != 'staff':
         flash("Access denied: Staff only.", "danger")
         return redirect(url_for('login'))
-    return render_template('staff_dashboard.html', username=session['username'])
+    
+    # 📊 CHART DATA: Stock by Category (same as admin)
+    from sqlalchemy import func
+    chart_data = db.session.query(
+        Product.category,
+        func.sum(Product.stock).label('total_stock')
+    ).filter(
+        Product.category.isnot(None),
+        Product.category != ''
+    ).group_by(Product.category).all()
+    
+    chart_categories = [row.category for row in chart_data]
+    chart_stocks = [row.total_stock for row in chart_data]
+
+    return render_template(
+        'staff_dashboard.html', 
+        username=session['username'],
+        chart_categories=chart_categories,
+        chart_stocks=chart_stocks
+    )
 
 
 # =====================================================

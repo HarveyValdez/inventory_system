@@ -42,12 +42,15 @@
   </div>
   {% endif %}
 
-  <!-- Low stock warning -->
-  {% if low_stock_count > 0 %}
-  <div class="alert alert-danger">
-    <strong>🚨 Alert:</strong> {{ low_stock_count }} item(s) need immediate restocking!
+  <!-- 📊 CHART SECTION - FIXED HEIGHT -->
+  <div class="card p-3 mb-3">
+    <h5>📊 Stock by Category</h5>
+    <div style="height: 250px; position: relative;">
+      <canvas id="stockChart" 
+              data-categories="{{ chart_categories|tojson|forceescape }}" 
+              data-stocks="{{ chart_stocks|tojson|forceescape }}"></canvas>
+    </div>
   </div>
-  {% endif %}
 
   <!-- Recent activities -->
   <div class="card p-3 mb-3">
@@ -68,7 +71,7 @@
     </div>
   </div>
 
-
+  <!-- Recent logins -->
   <div class="card p-3 mb-3">
     <h5>Recent Logins</h5>
     <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
@@ -86,7 +89,9 @@
       </table>
     </div>
   </div>
-
-
 </div>
+
+<!-- Chart.js CDN and Custom JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/chart.js') }}"></script>
 {% endblock %}
