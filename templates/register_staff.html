@@ -1,34 +1,87 @@
 {% extends "layout/base.html" %}
 {% block title %}Register Staff{% endblock %}
+
 {% block content %}
-<div class="mx-auto mt-5" style="max-width: 500px;">
+<div class="mx-auto mt-5" style="max-width: 600px;">
   <div class="card shadow p-4">
     <h3 class="text-center mb-3">🧾 Register New Staff</h3>
-    <form method="POST" action="{{ url_for('register_staff') }}" onsubmit="return confirmAddStaff();">
-      <div class="mb-3">
-        <label class="form-label">Username</label>
-        <!-- ✅ VALIDATION: minlength & maxlength -->
-        <input type="text" name="username" class="form-control" 
-               placeholder="Enter staff username" required 
-               minlength="3" maxlength="50">
-        <small class="text-muted">Minimum 3 characters</small>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" action="{{ url_for('register_staff') }}" onsubmit="return validateStaffForm();">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Username *</label>
+          <input type="text" name="username" class="form-control" required 
+                 minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+"
+                 title="Only letters, numbers, and underscores" 
+                 placeholder="Enter username">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Password *</label>
+          <input type="password" name="password" class="form-control" required 
+                 minlength="6" placeholder="Enter password">
+        </div>
       </div>
+
       <div class="mb-3">
-        <label class="form-label">Password</label>
-        <!-- ✅ VALIDATION: minlength -->
-        <input type="password" name="password" class="form-control" 
-               placeholder="Enter password" required minlength="6">
-        <small class="text-muted">Minimum 6 characters</small>
+        <label class="form-label">Full Name *</label>
+        <input type="text" name="full_name" class="form-control" required 
+               minlength="3" maxlength="100" placeholder="e.g., Juan Dela Cruz">
       </div>
-      <button type="submit" class="btn btn-success w-100">Register</button>
+
+      <div class="row mb-3">
+        <div class="col-md-8">
+          <label class="form-label">Email Address *</label>
+          <input type="email" name="email" class="form-control" required 
+                 placeholder="staff@company.com" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label">Phone</label>
+          <input type="tel" name="phone" class="form-control" 
+                 placeholder="0917-123-4567" pattern="[0-9+\-\(\)\s]+" maxlength="20">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Department</label>
+        <select name="department" class="form-select">
+          <option value="Sales">Sales</option>
+          <option value="Inventory">Inventory</option>
+          <option value="Customer Service">Customer Service</option>
+          <option value="Management">Management</option>
+          <option value="General">General</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-success w-100">Register Staff</button>
+      <a href="{{ url_for('manage_users') }}" class="btn btn-secondary w-100 mt-2">Cancel</a>
     </form>
   </div>
 </div>
 
 <script>
-function confirmAddStaff() {
+function validateStaffForm() {
   const username = document.querySelector('input[name="username"]').value;
-  return confirm(`⚠️ Are you sure you want to add staff: ${username}?`);
+  const email = document.querySelector('input[name="email"]').value;
+  
+  if (!username.match(/^[a-zA-Z0-9_]+$/)) {
+    alert("❌ Username can only contain letters, numbers, and underscores.");
+    return false;
+  }
+  
+  if (!email.match(/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/)) {
+    alert("❌ Please enter a valid email address.");
+    return false;
+  }
+  
+  return confirm(`⚠️ Register new staff account: ${username}?`);
 }
 </script>
 {% endblock %}

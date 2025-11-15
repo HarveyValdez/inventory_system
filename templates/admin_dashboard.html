@@ -1,5 +1,6 @@
 {% extends 'layout/base.html' %}
 {% block title %}Admin Dashboard{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
   <h3 class="mb-3"> Welcome, {{ username }} (Admin)</h3>
@@ -32,16 +33,26 @@
     </div>
   </div>
 
-  <!-- Low stock details -->
-  {% if low_stock_items %}
-  <div class="alert alert-warning">
-    <strong>Low stock:</strong>
-    {% for p in low_stock_items %}
-      {{ p.name }} ({{ p.stock }}){% if not loop.last %}, {% endif %}
-    {% endfor %}
+  <!-- Low stock warning -->
+  {% if low_stock_count > 0 %}
+  <div class="alert alert-danger">
+    <strong>🚨 Alert:</strong> {{ low_stock_count }} item(s) need immediate restocking!
   </div>
   {% endif %}
-  <!-- 📅 DATE RANGE FILTER -->
+
+
+
+  <!-- 📊 CHART SECTION -->
+  <div class="card p-3 mb-3">
+    <h5>📊 Stock by Category</h5>
+    <div style="height: 250px; position: relative;">
+      <canvas id="stockChart" 
+              data-categories="{{ chart_categories|tojson|forceescape }}" 
+              data-stocks="{{ chart_stocks|tojson|forceescape }}"></canvas>
+    </div>
+  </div>
+
+    <!-- 📅 DATE RANGE FILTER -->
   <div class="card p-3 mb-3">
       <h5>📅 Filter Recent Activities</h5>
       <form method="GET" class="row g-2">
@@ -61,15 +72,6 @@
           </div>
       </form>
   </div>
-  <!-- 📊 CHART SECTION - FIXED HEIGHT -->
-  <div class="card p-3 mb-3">
-    <h5>📊 Stock by Category</h5>
-    <div style="height: 250px; position: relative;">
-      <canvas id="stockChart" 
-              data-categories="{{ chart_categories|tojson|forceescape }}" 
-              data-stocks="{{ chart_stocks|tojson|forceescape }}"></canvas>
-    </div>
-  </div>
 
   <!-- Recent activities -->
   <div class="card p-3 mb-3">
@@ -82,7 +84,7 @@
             <tr>
               <td>{{ a.username }}</td>
               <td>{{ a.action }}</td>
-              <td>{{ a.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+              <td>{{ a.timestamp|manila_time }}</td>  <!-- ✅ Use filter -->
             </tr>
           {% endfor %}
         </tbody>
@@ -101,7 +103,7 @@
             <tr>
               <td>{{ log.username }}</td>
               <td>{{ log.ip_address }}</td>
-              <td>{{ log.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+              <td>{{ log.timestamp|manila_time }}</td>  <!-- ✅ Use filter -->
             </tr>
           {% endfor %}
         </tbody>

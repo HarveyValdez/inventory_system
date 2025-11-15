@@ -13,7 +13,7 @@
         <tr>
           <td>{{ log.username }}</td>
           <td>{{ log.action }}</td>
-          <td>{{ log.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</td>
+          <td>{{ log.timestamp|manila_time }}</td>  <!-- ✅ CHANGED -->
         </tr>
       {% endfor %}
     </tbody>

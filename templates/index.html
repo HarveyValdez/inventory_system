@@ -65,11 +65,10 @@
             </a>
           </th>
           <th>
-            <a href="{{ url_for('index', query=search_query, sort='date_added', order=('desc' if sort_by == 'date_added' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
-              Date Added {% if sort_by == 'date_added' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
+            <a href="{{ url_for('index', query=search_query, sort='created_at', order=('desc' if sort_by == 'created_at' and order == 'asc' else 'asc')) }}" class="text-decoration-none text-dark">
+              Created {% if sort_by == 'created_at' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
             </a>
           </th>
-          <th>Time</th>
           {% if session['role'] in ['admin', 'staff'] %}
             <th class="text-center" style="min-width: 200px;">Actions</th>
           {% endif %}
@@ -114,8 +113,7 @@
             {% endif %}
           </td>
           <td><strong>₱{{ "%.2f"|format(product.price) }}</strong></td>
-          <td>{{ product.date_added }}</td>
-          <td><small class="text-muted">{{ product.time_added.strftime("%H:%M") if product.time_added else '' }}</small></td>
+          <td><small>{{ product.created_at|manila_time if product.created_at else 'N/A' }}</small></td>  
 
           {% if session['role'] in ['admin', 'staff'] %}
           <td>

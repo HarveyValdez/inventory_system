@@ -5,15 +5,13 @@ import os
 import filetype
 import csv
 from io import StringIO
-from flask import make_response
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta  # ✅ ADD timedelta
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
-
 
 load_dotenv()
 
@@ -114,8 +112,14 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(10), nullable=False)  # 'admin' or 'staff'
-
+    role = db.Column(db.String(10), nullable=False)
+    # ✅ NEW FIELDS FOR STAFF DETAILS
+    full_name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), unique=True, nullable=False)
+    phone = db.Column(db.String(20), nullable=True)
+    department = db.Column(db.String(50), default='General')
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -123,13 +127,12 @@ class Product(db.Model):
     stock = db.Column(db.Integer, nullable=False, default=0)
     price = db.Column(db.Float, nullable=False, default=0.0)
     image = db.Column(db.String(200), nullable=True)
-    date_added = db.Column(db.Date, default=lambda: datetime.now(tz=timezone.utc).date())
-    time_added = db.Column(db.Time, default=lambda: datetime.now(tz=timezone.utc).time())
+    # ✅ CORRECTED: Single timestamp with timezone
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
     size = db.Column(db.String(10))
     size_unit = db.Column(db.String(5))
     brand = db.Column(db.String(50))
     category = db.Column(db.String(50))
-
 
 class ActivityLog(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -137,26 +140,26 @@ class ActivityLog(db.Model):
     username = db.Column(db.String(50), nullable=False)
     action = db.Column(db.String(200), nullable=False)
     product_name = db.Column(db.String(100))
+    # ✅ CORRECTED: Explicit UTC timestamp
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
-
 
 class StockAlert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), unique=True)
     product_name = db.Column(db.String(100), nullable=False)
     stock = db.Column(db.Integer, nullable=False)
-    alert_type = db.Column(db.String(50), nullable=False)  # "Low Stock" or "Out of Stock"
+    alert_type = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
-
 
 class LoginActivity(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     username = db.Column(db.String(100), nullable=False)
-    action = db.Column(db.String(50), nullable=False)  # 'Login' or 'Logout'
-    ip_address = db.Column(db.String(45))  # IPv4/IPv6 support
+    action = db.Column(db.String(50), nullable=False)
+    ip_address = db.Column(db.String(45))
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
+# ✅ NEW: Stock History Model
 class StockHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
@@ -167,6 +170,28 @@ class StockHistory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     username = db.Column(db.String(50))
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
+
+# =====================================================
+# TEMPLATE FILTERS
+# =====================================================
+
+@app.template_filter('manila_time')
+def manila_time_filter(utc_datetime):
+    """Convert UTC datetime to Manila Time (UTC+8) for display"""
+    if utc_datetime is None:
+        return "N/A"
+    
+    # Define Manila timezone
+    manila_tz = timezone(timedelta(hours=8))
+    
+    # Ensure the datetime is timezone-aware
+    if utc_datetime.tzinfo is None:
+        utc_datetime = utc_datetime.replace(tzinfo=timezone.utc)
+    
+    # Convert to Manila time
+    local_time = utc_datetime.astimezone(manila_tz)
+    
+    return local_time.strftime("%Y-%m-%d %H:%M:%S")
 
 # =====================================================
 # AUTHENTICATION ROUTES
@@ -285,8 +310,16 @@ def admin_dashboard():
     low_stock_items = Product.query.filter(Product.stock < 5).all()
     low_stock_count = len(low_stock_items)
 
-    today = datetime.now(tz=timezone.utc).date()
-    items_added_today = Product.query.filter(db.func.date(Product.date_added) == today).count()
+    # ✅ FIXED: Calculate "today" in Manila timezone
+    manila_tz = timezone(timedelta(hours=8))
+    today_manila = datetime.now(tz=manila_tz).date()
+    
+    # ✅ FIXED: MySQL-compatible syntax using INTERVAL
+    from sqlalchemy import text
+    items_added_today = db.session.query(Product).filter(
+        db.func.date(Product.created_at + text("INTERVAL 8 HOUR")) == today_manila
+    ).count()
+    
     total_staff = User.query.filter(User.role == 'staff').count()
 
     # 📅 DATE RANGE FILTER
@@ -297,15 +330,24 @@ def admin_dashboard():
     activities_query = ActivityLog.query
     logins_query = LoginActivity.query
     
+    # ✅ FIXED: Proper timezone-aware date filtering
     if start_date:
-        start_datetime = datetime.strptime(start_date, '%Y-%m-%d')
-        activities_query = activities_query.filter(ActivityLog.timestamp >= start_datetime)
-        logins_query = logins_query.filter(LoginActivity.timestamp >= start_datetime)
+        # Parse date and create start of day in Manila
+        start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+        start_manila = start_dt.replace(hour=0, minute=0, second=0, tzinfo=manila_tz)
+        # Convert to UTC for database comparison
+        start_utc = start_manila.astimezone(timezone.utc)
+        activities_query = activities_query.filter(ActivityLog.timestamp >= start_utc)
+        logins_query = logins_query.filter(LoginActivity.timestamp >= start_utc)
     
     if end_date:
-        end_datetime = datetime.strptime(end_date, '%Y-%m-%d')
-        activities_query = activities_query.filter(ActivityLog.timestamp <= end_datetime)
-        logins_query = logins_query.filter(LoginActivity.timestamp <= end_datetime)
+        # Parse date and create end of day in Manila
+        end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+        end_manila = end_dt.replace(hour=23, minute=59, second=59, tzinfo=manila_tz)
+        # Convert to UTC for database comparison
+        end_utc = end_manila.astimezone(timezone.utc)
+        activities_query = activities_query.filter(ActivityLog.timestamp <= end_utc)
+        logins_query = logins_query.filter(LoginActivity.timestamp <= end_utc)
 
     # Fetch filtered results (last 20)
     recent_activities = activities_query.order_by(ActivityLog.timestamp.desc()).limit(20).all()
@@ -339,7 +381,6 @@ def admin_dashboard():
         start_date=start_date,
         end_date=end_date
     )
-
 
 @app.route('/staff_dashboard')
 def staff_dashboard():
@@ -378,29 +419,68 @@ def register_staff():
     if request.method == 'POST':
         username = request.form['username'].strip()
         password = request.form['password']
+        full_name = request.form['full_name'].strip()
+        email = request.form['email'].strip()
+        phone = request.form['phone'].strip()
+        department = request.form['department']
 
-        # ✅ VALIDATION: Username length
+        # ✅ SERVER-SIDE VALIDATION
+        errors = []
+        
         if len(username) < 3:
-            flash("❌ Username must be at least 3 characters.", "danger")
-            return redirect(url_for('register_staff'))
-
-        # ✅ VALIDATION: Password length
+            errors.append("Username must be at least 3 characters.")
+        
         if len(password) < 6:
-            flash("❌ Password must be at least 6 characters.", "danger")
-            return redirect(url_for('register_staff'))
-
-        # ✅ VALIDATION: Username already exists
+            errors.append("Password must be at least 6 characters.")
+        
+        if not full_name or len(full_name) < 3:
+            errors.append("Full name is required and must be at least 3 characters.")
+        
+        # Email format validation
+        import re
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not email or not re.match(email_pattern, email):
+            errors.append("Valid email address is required.")
+        
+        # Check uniqueness
         if User.query.filter_by(username=username).first():
-            flash("❌ Username already exists!", "danger")
+            errors.append(f"Username '{username}' already exists!")
+        
+        if User.query.filter_by(email=email).first():
+            errors.append(f"Email '{email}' is already registered!")
+        
+        # If errors exist, flash them and redirect
+        if errors:
+            for error in errors:
+                flash(f"❌ {error}", "danger")
             return redirect(url_for('register_staff'))
 
+        # ✅ CREATE USER WITH DETAILS
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_staff = User(username=username, password=hashed_pw, role='staff')
+        new_staff = User(
+            username=username,
+            password=hashed_pw,
+            role='staff',
+            full_name=full_name,
+            email=email,
+            phone=phone,
+            department=department
+        )
         db.session.add(new_staff)
         db.session.commit()
 
-        flash("✅ New staff registered successfully!", "success")
-        return redirect(url_for('admin_dashboard'))
+        # ✅ LOG ACTIVITY
+        activity = ActivityLog(
+            user_id=session['user_id'],
+            username=session['username'],
+            action=f"Admin registered new staff: {username}",
+            product_name=f"{full_name} ({department})"
+        )
+        db.session.add(activity)
+        db.session.commit()
+
+        flash(f"✅ Staff '{username}' registered successfully!", "success")
+        return redirect(url_for('manage_users'))
 
     return render_template('register_staff.html')
 
@@ -774,11 +854,19 @@ def search_inventory():
 @admin_only
 def search_users():
     query = request.args.get('query', '').strip()
+    users = User.query
+    
     if query:
-        users = User.query.filter(User.username.ilike(f"%{query}%")).all()
-    else:
-        users = User.query.filter(User.role != 'admin').all()
-
+        users = users.filter(
+            db.or_(
+                User.username.ilike(f"%{query}%"),
+                User.full_name.ilike(f"%{query}%"),
+                User.email.ilike(f"%{query}%"),
+                User.department.ilike(f"%{query}%")
+            )
+        )
+    
+    users = users.filter(User.role != 'admin').all()
     return render_template('manage_users.html', users=users, search_query=query)
 
 

@@ -24,7 +24,7 @@
                 <tbody>
                     {% for history in histories %}
                     <tr>
-                        <td><small>{{ history.timestamp.strftime("%Y-%m-%d %H:%M:%S") }}</small></td>
+                        <td><small>{{ history.timestamp|manila_time }}</small></td>  
                         <td><strong>{{ history.username or 'System' }}</strong></td>
                         <td class="text-center">{{ history.old_stock }}</td>
                         <td class="text-center">{{ history.new_stock }}</td>
