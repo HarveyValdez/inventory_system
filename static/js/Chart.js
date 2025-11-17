@@ -1,4 +1,4 @@
-// static/js/chart.js - Fixed height version
+// static/js/chart.js 
 
 document.addEventListener('DOMContentLoaded', function() {
     const canvas = document.getElementById('stockChart');
@@ -26,7 +26,7 @@ document.addEventListener('DOMContentLoaded', function() {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // This is key for fixed height
+                maintainAspectRatio: false,
                 plugins: { 
                     legend: { display: false } 
                 },

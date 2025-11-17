@@ -84,7 +84,7 @@
             <tr>
               <td>{{ a.username }}</td>
               <td>{{ a.action }}</td>
-              <td>{{ a.timestamp|manila_time }}</td>  <!-- ✅ Use filter -->
+              <td>{{ a.timestamp|manila_time }}</td>  
             </tr>
           {% endfor %}
         </tbody>
@@ -103,7 +103,7 @@
             <tr>
               <td>{{ log.username }}</td>
               <td>{{ log.ip_address }}</td>
-              <td>{{ log.timestamp|manila_time }}</td>  <!-- ✅ Use filter -->
+              <td>{{ log.timestamp|manila_time }}</td>  
             </tr>
           {% endfor %}
         </tbody>
@@ -112,7 +112,7 @@
   </div>
 </div>
 
-<!-- Chart.js CDN and Custom JS -->
+<!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/chart.js') }}"></script>
 {% endblock %}

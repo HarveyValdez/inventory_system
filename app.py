@@ -5,9 +5,10 @@ import os
 import filetype
 import csv
 from io import StringIO
-from datetime import datetime, timezone, timedelta  # ✅ ADD timedelta
+from datetime import datetime, timezone, timedelta  
 from functools import wraps
 from flask import Flask, render_template, request, redirect, url_for, session, flash
+from flask import make_response
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
@@ -70,7 +71,7 @@ def validate_image(stream):
     try:
         # Read a chunk of the file
         header = stream.read(512)
-        stream.seek(0)  # Reset stream position
+        stream.seek(0)  
         
         # Detect file type
         kind = filetype.image(header)
@@ -87,7 +88,7 @@ def save_uploaded_file(file_storage):
     if not file_storage or not file_storage.filename:
         return None
     
-    # Get filename
+   
     filename = secure_filename(file_storage.filename)
     
     # Add timestamp to avoid duplicate names
@@ -113,7 +114,6 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(10), nullable=False)
-    # ✅ NEW FIELDS FOR STAFF DETAILS
     full_name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), unique=True, nullable=False)
     phone = db.Column(db.String(20), nullable=True)
@@ -127,7 +127,6 @@ class Product(db.Model):
     stock = db.Column(db.Integer, nullable=False, default=0)
     price = db.Column(db.Float, nullable=False, default=0.0)
     image = db.Column(db.String(200), nullable=True)
-    # ✅ CORRECTED: Single timestamp with timezone
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
     size = db.Column(db.String(10))
     size_unit = db.Column(db.String(5))
@@ -140,7 +139,6 @@ class ActivityLog(db.Model):
     username = db.Column(db.String(50), nullable=False)
     action = db.Column(db.String(200), nullable=False)
     product_name = db.Column(db.String(100))
-    # ✅ CORRECTED: Explicit UTC timestamp
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
 class StockAlert(db.Model):
@@ -159,7 +157,6 @@ class LoginActivity(db.Model):
     ip_address = db.Column(db.String(45))
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
-# ✅ NEW: Stock History Model
 class StockHistory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
@@ -181,14 +178,13 @@ def manila_time_filter(utc_datetime):
     if utc_datetime is None:
         return "N/A"
     
-    # Define Manila timezone
+    
     manila_tz = timezone(timedelta(hours=8))
     
-    # Ensure the datetime is timezone-aware
+    
     if utc_datetime.tzinfo is None:
         utc_datetime = utc_datetime.replace(tzinfo=timezone.utc)
     
-    # Convert to Manila time
     local_time = utc_datetime.astimezone(manila_tz)
     
     return local_time.strftime("%Y-%m-%d %H:%M:%S")
@@ -206,12 +202,12 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and bcrypt.check_password_hash(user.password, password):
-            # Set session data
+            
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
 
-            # Record login activity
+            
             login_log = LoginActivity(
                 user_id=user.id,
                 username=user.username,
@@ -223,7 +219,7 @@ def login():
 
             flash(f"Welcome, {user.username}!", "success")
 
-            # Redirect based on role
+           
             if user.role == 'admin':
                 return redirect(url_for('admin_dashboard'))
             elif user.role == 'staff':
@@ -269,22 +265,22 @@ def change_password():
         new_password = request.form['new_password']
         confirm_password = request.form['confirm_password']
 
-        # ✅ VALIDATION: Password length (for admin & staff)
+        # ✅ VALIDATION: Password length 
         if len(new_password) < 6:
             flash("❌ Password must be at least 6 characters.", "danger")
             return redirect(url_for('change_password'))
 
-        # ✅ VALIDATION: New password must be different
+        # ✅ VALIDATION: New password 
         if new_password == old_password:
             flash("❌ New password must be different from old password.", "danger")
             return redirect(url_for('change_password'))
 
-        # ✅ VALIDATION: Check old password
+        # ✅ VALIDATION:old password
         if not bcrypt.check_password_hash(user.password, old_password):
             flash("❌ Incorrect old password.", "danger")
             return redirect(url_for('change_password'))
 
-        # ✅ VALIDATION: Confirm password match
+        # ✅ VALIDATION:password match
         if new_password != confirm_password:
             flash("❌ New passwords do not match.", "danger")
             return redirect(url_for('change_password'))
@@ -305,16 +301,16 @@ def change_password():
 @app.route('/admin_dashboard')
 @admin_only
 def admin_dashboard():
-    # Calculate dashboard statistics
+    #dashboard statistics
     total_items = Product.query.count()
     low_stock_items = Product.query.filter(Product.stock < 5).all()
     low_stock_count = len(low_stock_items)
 
-    # ✅ FIXED: Calculate "today" in Manila timezone
+    # Manila timezone
     manila_tz = timezone(timedelta(hours=8))
     today_manila = datetime.now(tz=manila_tz).date()
     
-    # ✅ FIXED: MySQL-compatible syntax using INTERVAL
+    
     from sqlalchemy import text
     items_added_today = db.session.query(Product).filter(
         db.func.date(Product.created_at + text("INTERVAL 8 HOUR")) == today_manila
@@ -330,30 +326,29 @@ def admin_dashboard():
     activities_query = ActivityLog.query
     logins_query = LoginActivity.query
     
-    # ✅ FIXED: Proper timezone-aware date filtering
+    # date filtering
     if start_date:
-        # Parse date and create start of day in Manila
+        
         start_dt = datetime.strptime(start_date, '%Y-%m-%d')
         start_manila = start_dt.replace(hour=0, minute=0, second=0, tzinfo=manila_tz)
-        # Convert to UTC for database comparison
+        
         start_utc = start_manila.astimezone(timezone.utc)
         activities_query = activities_query.filter(ActivityLog.timestamp >= start_utc)
         logins_query = logins_query.filter(LoginActivity.timestamp >= start_utc)
     
     if end_date:
-        # Parse date and create end of day in Manila
+        
         end_dt = datetime.strptime(end_date, '%Y-%m-%d')
         end_manila = end_dt.replace(hour=23, minute=59, second=59, tzinfo=manila_tz)
-        # Convert to UTC for database comparison
+        
         end_utc = end_manila.astimezone(timezone.utc)
         activities_query = activities_query.filter(ActivityLog.timestamp <= end_utc)
         logins_query = logins_query.filter(LoginActivity.timestamp <= end_utc)
 
-    # Fetch filtered results (last 20)
     recent_activities = activities_query.order_by(ActivityLog.timestamp.desc()).limit(20).all()
     recent_logins = logins_query.order_by(LoginActivity.timestamp.desc()).limit(20).all()
 
-    # 📊 CHART DATA: Stock by Category
+    # 📊 CHART DATA: Stock 
     from sqlalchemy import func
     chart_data = db.session.query(
         Product.category,
@@ -388,7 +383,7 @@ def staff_dashboard():
         flash("Access denied: Staff only.", "danger")
         return redirect(url_for('login'))
     
-    # 📊 CHART DATA: Stock by Category (same as admin)
+    # 📊 CHART DATA: Stock 
     from sqlalchemy import func
     chart_data = db.session.query(
         Product.category,
@@ -424,7 +419,7 @@ def register_staff():
         phone = request.form['phone'].strip()
         department = request.form['department']
 
-        # ✅ SERVER-SIDE VALIDATION
+        # SERVER-SIDE VALIDATION
         errors = []
         
         if len(username) < 3:
@@ -436,20 +431,20 @@ def register_staff():
         if not full_name or len(full_name) < 3:
             errors.append("Full name is required and must be at least 3 characters.")
         
-        # Email format validation
+        # Email validation
         import re
         email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
         if not email or not re.match(email_pattern, email):
             errors.append("Valid email address is required.")
         
-        # Check uniqueness
+        # Check for existing 
         if User.query.filter_by(username=username).first():
             errors.append(f"Username '{username}' already exists!")
         
         if User.query.filter_by(email=email).first():
             errors.append(f"Email '{email}' is already registered!")
         
-        # If errors exist, flash them and redirect
+        # errors 
         if errors:
             for error in errors:
                 flash(f"❌ {error}", "danger")
@@ -469,7 +464,7 @@ def register_staff():
         db.session.add(new_staff)
         db.session.commit()
 
-        # ✅ LOG ACTIVITY
+        # LOG ACTIVITY
         activity = ActivityLog(
             user_id=session['user_id'],
             username=session['username'],
@@ -520,7 +515,7 @@ def index():
     sort_by = request.args.get('sort', 'id')  # Default sort by ID
     order = request.args.get('order', 'asc')  # Default order ascending
 
-    # ✅ Security: Whitelist allowed columns
+    
     allowed_columns = ['id', 'name', 'brand', 'category', 'size', 'stock', 'price', 'date_added']
     if sort_by not in allowed_columns:
         sort_by = 'id'
@@ -530,7 +525,7 @@ def index():
     # Build base query
     query = Product.query
 
-    # Apply search if present
+    # Apply search 
     if search_query:
         query = query.filter(
             db.or_(
@@ -580,7 +575,7 @@ def add_product():
             size_unit=request.form.get('size_unit')
         )
 
-        # Handle image upload
+        # image upload
         image_file = save_uploaded_file(request.files.get('image'))
         if image_file:
             new_product.image = image_file
@@ -624,7 +619,7 @@ def edit_product(id):
     product = Product.query.get_or_404(id)
 
     if request.method == 'POST':
-        # Update product fields
+        # Update product 
         product.name = request.form['name']
         product.brand = request.form.get('brand')
         product.category = request.form.get('category')
@@ -959,7 +954,7 @@ def product_history(product_id):
 # =====================================================
 
 if __name__ == '__main__':
-    # Create tables if they don't exist (development only)
+    # Create tables if they don't exist 
     with app.app_context():
         db.create_all()
     
