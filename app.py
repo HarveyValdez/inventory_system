@@ -22,13 +22,13 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Security Configuration (from environment)
+# Security Configuration 
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'fallback-dev-key-change-in-production')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL')
 app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'static/uploads')
 app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))
 
-# Session Security (enforce in production with HTTPS)
+# Session Security 
 app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV') == 'production'
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
@@ -915,7 +915,6 @@ def create_admin():
 # EXPORT INVENTORY TO CSV
 # =====================================================
 @app.route('/export_csv')
-@admin_only
 def export_csv():
     products = Product.query.all()
     

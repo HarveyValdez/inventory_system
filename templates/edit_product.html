@@ -17,7 +17,7 @@
     <form method="POST" enctype="multipart/form-data" 
           onsubmit="return confirmEditWithReason();">
       
-      <!-- Existing Product Fields -->
+      <!-- Product Fields -->
       <div class="row mb-3">
         <div class="col">
           <label>Footwear Name</label>
@@ -78,7 +78,7 @@
         {% endif %}
       </div>
 
-      <!-- ✅ NEW: Reason for Edit -->
+      <!-- Reason for Edit -->
       <div class="mb-3">
         <label class="form-label">Reason for Edit <span class="text-muted">(Optional)</span></label>
         <textarea name="edit_reason" class="form-control" rows="2" 

@@ -1,26 +1,25 @@
 /* ==========================================
-   PROFESSIONAL LIGHT THEME - COMPLETE REDESIGN
-   Color Palette: Warm Sage, Charcoal, Cream
+   PROFESSIONAL LIGHT THEME
    ========================================== */
 
 :root {
-  /* LIGHT COLOR PALETTE - NO BLUE */
+  /* LIGHT COLOR PALETTE  */
   --bg-primary: #faf9f7;      /* Warm cream */
   --bg-secondary: #ffffff;      /* Pure white */
   --bg-tertiary: #f5f3f0;       /* Light sage */
   --bg-accent: rgba(245, 243, 240, 0.85); /* Glass base */
   
-  /* TEXT COLORS - High contrast, no blue */
+  /* TEXT COLORS  */
   --text-primary: #2d3436;      /* Charcoal */
   --text-secondary: #636e72;    /* Warm gray */
   --text-muted: #b2bec3;        /* Light gray */
   
-  /* ACCENT COLORS - Sage green & warm tones */
-  --accent-primary: #00b894;    /* Sage green */
-  --accent-secondary: #fdcb6e;  /* Warm amber */
+  /* ACCENT COLORS */
+  --accent-primary: #00b894;    
+  --accent-secondary: #fdcb6e; 
   --accent-gradient: linear-gradient(135deg, var(--accent-primary), #55efc4);
   
-  /* UI COLORS */
+ 
   --border-light: #ddd6d0;
   --border-medium: #cec9c3;
   --border-heavy: #b2bec3;
@@ -29,13 +28,13 @@
   --warning-color: #fdcb6e;
   --success-color: #00b894;
   
-  /* SHADOWS - Soft and subtle for light theme */
+  
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
   --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 20px rgba(0, 0, 0, 0.12);
   --shadow-accent: 0 4px 15px rgba(0, 184, 148, 0.25);
   
-  /* TRANSITIONS - All preserved */
+ 
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-medium: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   --transition-slow: 0.6s ease;
@@ -44,7 +43,7 @@
   --border-radius-sm: 12px;
   --border-radius-xs: 8px;
   
-  /* GLASSMORPHISM - Light version */
+  
   --glass-bg: rgba(255, 255, 255, 0.8);
   --glass-border: rgba(0, 184, 148, 0.2);
 }
@@ -581,7 +580,7 @@ html {
 }
 
 /* ==========================================
-   CUSTOM SCROLLBAR - Light Theme
+   CUSTOM SCROLLBAR 
    ========================================== */
 
 ::-webkit-scrollbar {
@@ -602,10 +601,10 @@ html {
 }
 
 /* ==========================================
-   TEXT GLOW EFFECT - Subtle for Light Theme
+   TEXT GLOW EFFECT 
    ========================================== */
 
-/* ADD GLOW HERE - ADJUST COLORS AS NEEDED */
+
 body,
 p,
 span,
@@ -643,11 +642,11 @@ textarea,
 .form-label,
 .nav-user,
 .nav-badge {
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; /* Subtle dark shadow for readability */
-  color: var(--text-primary) !important; /* Use theme colors */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important; 
+  color: var(--text-primary) !important; 
 }
 
-/* Accent glow for headings */
+/* glow */
 h2, h3,
 .page-header h2,
 .card-title,
@@ -657,7 +656,7 @@ th {
   text-shadow: 0 1px 3px rgba(0, 184, 148, 0.2) !important;
 }
 
-/* Remove glow from buttons */
+/* buttons */
 .btn,
 .btn-primary,
 .btn-success,
@@ -668,35 +667,35 @@ th {
 }
 
 /* ==========================================
-   WHITE BADGES - BLACK TEXT - HIGH CONTRAST
+   HIGH CONTRAST
    ========================================== */
 
-/* Target every badge in the table */
+
 .table .badge {
-  background: #ffffff !important; /* Pure white background */
-  color: #000000 !important; /* Pure black text */
+  background: #ffffff !important; 
+  color: #000000 !important; 
   font-weight: 600 !important;
   padding: 0.5em 0.8em !important;
   border-radius: 10px !important;
-  border: 1px solid #e0e0e0 !important; /* Light gray border */
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important; /* Subtle shadow */
-  text-shadow: none !important; /* Remove any glow conflicts */
+  border: 1px solid #e0e0e0 !important; 
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important; 
+  text-shadow: none !important; 
   transition: all 0.3s ease;
 }
 
-/* Remove glow from badge text */
+
 .table .badge * {
   text-shadow: none !important;
 }
 
-/* Hover effect - subtle lift */
+
 .table .badge:hover {
   transform: translateY(-1px);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
   border-color: #bdbdbd !important;
 }
 
-/* Ensure ALL badge types are overridden */
+
 .table .badge.bg-success,
 .table .badge.bg-warning,
 .table .badge.bg-danger,
@@ -709,7 +708,7 @@ th {
 }
 
 /* ==========================================
-   PRODUCT ACTION BUTTONS - Organized Layout
+   PRODUCT ACTION BUTTONS 
    ========================================== */
 
 .product-actions {
@@ -733,7 +732,7 @@ th {
   min-width: 32px;
 }
 
-/* Stock controls section */
+
 .stock-controls {
   border-top: 1px solid var(--glass-border);
   padding-top: 8px;
@@ -760,7 +759,7 @@ th {
   height: 28px;
 }
 
-/* Hide text on small screens for cleaner view */
+
 @media (max-width: 1200px) {
   .action-group .btn-sm span {
     display: none;
@@ -792,7 +791,7 @@ th {
   }
 }
 /* ==========================================
-   SEPARATED ACTION COLUMNS - Vertical Layout
+  ACTION COLUMNS 
    ========================================== */
 
 .action-buttons-column,
@@ -858,4 +857,172 @@ th {
   .stock-controls-column {
     gap: 4px;
   }
+}
+/* ==========================================
+   MOBILE RESPONSIVE FIXES
+   ========================================== */
+
+/* menu visibility */
+@media (max-width: 991px) {
+  .navbar-collapse {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-sm);
+    padding: 1rem;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .navbar-nav {
+    width: 100%;
+  }
+
+  .navbar-nav .nav-link {
+    margin: 0.25rem 0;
+    padding: 0.75rem 1rem !important;
+    border-radius: var(--border-radius-xs);
+  }
+
+}
+
+@media (max-width: 768px) {
+  
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  
+  .table {
+    min-width: 800px;
+    font-size: 0.85rem;
+  }
+  
+  
+  .table th:nth-child(5), /* Category */
+  .table td:nth-child(5),
+  .table th:nth-child(6), /* Size */
+  .table td:nth-child(6),
+  .table th:nth-child(9), /* Created */
+  .table td:nth-child(9) {
+    display: none;
+  }
+  
+  
+  .table th:last-child,
+  .table td:last-child,
+  .table th:nth-last-child(2),
+  .table td:nth-last-child(2) {
+    min-width: 80px;
+  }
+  
+ 
+  .action-buttons-column .btn-sm,
+  .stock-controls-column .btn-sm {
+    font-size: 10px;
+    padding: 3px 6px;
+  }
+  
+
+  .stock-controls-column input {
+    font-size: 10px;
+    padding: 2px;
+  }
+}
+
+
+@media (max-width: 576px) {
+  .img-thumbnail {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+
+  .action-buttons-column .btn-sm span,
+  .stock-controls-column .btn-sm span {
+    display: none;
+  }
+  
+  .action-buttons-column .btn-sm,
+  .stock-controls-column .btn-sm {
+    width: 32px;
+    padding: 4px 0;
+  }
+}
+
+/* ==========================================
+   MOBILE MENU BUTTON
+   ========================================== */
+
+
+.navbar-toggler {
+  display: block !important;
+  border: none;
+  padding: 8px 12px;
+  background: transparent;
+}
+
+.navbar-toggler:focus,
+.navbar-toggler:hover {
+  box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.3);
+  background: rgba(0, 184, 148, 0.1);
+}
+
+/*  menu on mobile */
+@media (max-width: 991px) {
+  .navbar-collapse {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: var(--border-radius-sm);
+    padding: 1rem;
+    box-shadow: var(--shadow-lg);
+    z-index: 1050;
+    margin-top: 8px;
+  }
+
+  .navbar-nav {
+    width: 100%;
+    text-align: center;
+  }
+
+  .nav-user {
+    display: block;
+    padding: 0.5rem 1rem;
+    color: var(--accent-primary);
+    font-weight: 600;
+    border-bottom: 1px solid var(--glass-border);
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* ==========================================
+   LIGHT GREEN MENU
+   ========================================== */
+
+.navbar-toggler-icon {
+  
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30'%3e%3cpath stroke='%2300b894' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M4 7h22M4 15h22M4 23h22'/%3e%3c/svg%3e") !important;
+  filter: drop-shadow(0 0 4px rgba(0, 184, 148, 0.5));
+}
+
+
+.navbar-toggler {
+  border-color: rgba(0, 184, 148, 0.5) !important;
+}
+
+
+.navbar-toggler:hover .navbar-toggler-icon {
+  filter: drop-shadow(0 0 6px rgba(0, 184, 148, 0.8));
 }

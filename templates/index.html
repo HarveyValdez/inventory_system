@@ -25,7 +25,7 @@
     <a href="{{ url_for('add_product') }}" class="btn btn-success">
       <i class="fas fa-plus-circle"></i> Add New Footwear
     </a>
-    {% if session['role'] == 'admin' %}
+    {% if session['role'] in ['admin', 'staff'] %}
     <a href="{{ url_for('export_csv') }}" class="btn btn-outline-primary ms-2">
       <i class="fas fa-file-export"></i> Export CSV
     </a>
