@@ -18,13 +18,13 @@
                         <th class="text-center">Old Stock</th>
                         <th class="text-center">New Stock</th>
                         <th class="text-center">Change</th>
-                        <th>Reason</th>
+                        <th>Reason / Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for history in histories %}
                     <tr>
-                        <td><small>{{ history.timestamp|manila_time }}</small></td>  
+                        <td><small>{{ history.timestamp|manila_time }}</small></td>
                         <td><strong>{{ history.username or 'System' }}</strong></td>
                         <td class="text-center">{{ history.old_stock }}</td>
                         <td class="text-center">{{ history.new_stock }}</td>
@@ -32,11 +32,22 @@
                         <td class="text-center">
                             {% if change > 0 %}
                                 <span class="badge bg-success">+{{ change }}</span>
-                            {% else %}
+                            {% elif change < 0 %}
                                 <span class="badge bg-danger">{{ change }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">0</span>
                             {% endif %}
                         </td>
-                        <td><em>{{ history.change_reason or 'Manual update' }}</em></td>
+                        <td>
+                            <!-- ✅ Display reason clearly -->
+                            <small>
+                                {% if history.change_reason %}
+                                    {{ history.change_reason }}
+                                {% else %}
+                                    <span class="text-muted">No reason provided</span>
+                                {% endif %}
+                            </small>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>

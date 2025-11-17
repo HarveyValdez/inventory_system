@@ -707,3 +707,155 @@ th {
   background: #ffffff !important;
   color: #000000 !important;
 }
+
+/* ==========================================
+   PRODUCT ACTION BUTTONS - Organized Layout
+   ========================================== */
+
+.product-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.action-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
+.action-group .btn-sm {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 32px;
+}
+
+/* Stock controls section */
+.stock-controls {
+  border-top: 1px solid var(--glass-border);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.stock-form {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  margin: 0;
+}
+
+.stock-form input {
+  width: 65px !important;
+  height: 28px;
+  font-size: 11px;
+  text-align: center;
+  padding: 2px 4px;
+}
+
+.stock-form button {
+  padding: 4px 8px;
+  height: 28px;
+}
+
+/* Hide text on small screens for cleaner view */
+@media (max-width: 1200px) {
+  .action-group .btn-sm span {
+    display: none;
+  }
+  
+  .action-group .btn-sm {
+    width: 32px;
+    padding: 4px 0;
+  }
+}
+
+/* Compact view for mobile */
+@media (max-width: 768px) {
+  .product-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  
+  .action-group {
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .stock-controls {
+    border-top: none;
+    border-left: 1px solid var(--glass-border);
+    padding-top: 0;
+    padding-left: 8px;
+  }
+}
+/* ==========================================
+   SEPARATED ACTION COLUMNS - Vertical Layout
+   ========================================== */
+
+.action-buttons-column,
+.stock-controls-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 4px;
+}
+
+.action-buttons-column .btn-sm {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  width: 100%;
+  text-align: center;
+}
+
+.stock-controls-column .stock-form-vertical {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stock-controls-column .form-control-sm {
+  height: 28px;
+  font-size: 11px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.stock-controls-column .btn-sm {
+  height: 28px;
+  padding: 4px 8px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* Table header styling */
+.table th {
+  text-align: center;
+  vertical-align: middle;
+  font-size: 0.8rem;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 1200px) {
+  .action-buttons-column .btn-sm span {
+    display: none;
+  }
+  
+  .action-buttons-column .btn-sm {
+    padding: 6px 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .table-responsive {
+    font-size: 0.85rem;
+  }
+  
+  .action-buttons-column,
+  .stock-controls-column {
+    gap: 4px;
+  }
+}

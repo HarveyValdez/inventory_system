@@ -19,14 +19,20 @@
   </form>
 
   <!-- Add Product Button -->
-  {% if session['role'] in ['admin', 'staff'] %}
+
+    {% if session['role'] in ['admin', 'staff'] %}
   <div class="text-center mb-4">
     <a href="{{ url_for('add_product') }}" class="btn btn-success">
       <i class="fas fa-plus-circle"></i> Add New Footwear
     </a>
+    {% if session['role'] == 'admin' %}
+    <a href="{{ url_for('export_csv') }}" class="btn btn-outline-primary ms-2">
+      <i class="fas fa-file-export"></i> Export CSV
+    </a>
+    {% endif %}
   </div>
   {% endif %}
-
+  
   <!-- Product Table -->
   <div class="table-responsive">
     <table class="table table-hover align-middle">
@@ -69,8 +75,11 @@
               Created {% if sort_by == 'created_at' %}<i class="fas fa-sort-{{ 'up' if order == 'asc' else 'down' }}"></i>{% endif %}
             </a>
           </th>
+          
+          <!-- ✅ SEPARATED ACTION COLUMNS -->
           {% if session['role'] in ['admin', 'staff'] %}
-            <th class="text-center" style="min-width: 200px;">Actions</th>
+          <th class="text-center">Actions</th>
+          <th class="text-center">Stock Control</th>
           {% endif %}
         </tr>
       </thead>
@@ -113,45 +122,59 @@
             {% endif %}
           </td>
           <td><strong>₱{{ "%.2f"|format(product.price) }}</strong></td>
-          <td><small>{{ product.created_at|manila_time if product.created_at else 'N/A' }}</small></td>  
+          <td><small>{{ product.created_at|manila_time if product.created_at else 'N/A' }}</small></td>
 
           {% if session['role'] in ['admin', 'staff'] %}
-          <td>
-            <div class="stock-actions">
-              <!-- History Button -->
+          <!-- ✅ COLUMN 1: Action Buttons -->
+          <td class="text-center">
+            <div class="action-buttons-column">
               <a href="{{ url_for('product_history', product_id=product.id) }}" 
-                 class="btn btn-sm btn-info" 
-                 title="View Stock History">
+                 class="btn btn-sm btn-info mb-1 w-100" 
+                 title="View History">
                 <i class="fas fa-history"></i> History
               </a>
-
-              <!-- Edit Button -->
-              <a href="{{ url_for('edit_product', id=product.id) }}" class="btn btn-sm btn-warning">
+              
+              <a href="{{ url_for('edit_product', id=product.id) }}" 
+                 class="btn btn-sm btn-warning mb-1 w-100" 
+                 title="Edit Product">
                 <i class="fas fa-edit"></i> Edit
               </a>
-
-              <!-- Delete Button  -->
+              
               {% if session['role'] == 'admin' %}
                 <a href="{{ url_for('delete_product', id=product.id) }}" 
-                   class="btn btn-sm btn-danger"
-                   onclick="return confirm('🚨 DELETE PRODUCT: {{ product.name }}? This will permanently remove the product and its image!');">
+                   class="btn btn-sm btn-danger w-100" 
+                   title="Delete Product"
+                   onclick="return confirm('🚨 DELETE: {{ product.name }}? This cannot be undone!');">
                   <i class="fas fa-trash"></i> Delete
                 </a>
               {% endif %}
+            </div>
+          </td>
 
+          <!-- ✅ COLUMN 2: Stock Controls -->
+          <td class="text-center">
+            <div class="stock-controls-column">
               <!-- Add Stock -->
-              <form action="{{ url_for('add_stock', product_id=product.id) }}" method="POST" class="stock-input-group" onsubmit="return confirmAddStock(event);">
-                <input type="number" name="added_qty" min="1" max="1000" placeholder="Qty" class="form-control form-control-sm" required>
-                <button type="submit" class="btn btn-sm btn-success" title="Add Stock">
-                  <i class="fas fa-plus"></i>
+              <form action="{{ url_for('add_stock', product_id=product.id) }}" 
+                    method="POST" 
+                    class="stock-form-vertical mb-2"
+                    onsubmit="return confirmAddStock(event);">
+                <input type="number" name="added_qty" min="1" max="1000" 
+                       placeholder="Qty" class="form-control form-control-sm mb-1" required>
+                <button type="submit" class="btn btn-sm btn-success w-100">
+                  <i class="fas fa-plus"></i> Add
                 </button>
               </form>
 
               <!-- Deduct Stock -->
-              <form action="{{ url_for('deduct_stock', product_id=product.id) }}" method="POST" class="stock-input-group" onsubmit="return confirmDeductStock(event);">
-                <input type="number" name="deduct_qty" min="1" placeholder="Qty" class="form-control form-control-sm" required>
-                <button type="submit" class="btn btn-sm btn-danger" title="Deduct Stock">
-                  <i class="fas fa-minus"></i>
+              <form action="{{ url_for('deduct_stock', product_id=product.id) }}" 
+                    method="POST" 
+                    class="stock-form-vertical"
+                    onsubmit="return confirmDeductStock(event);">
+                <input type="number" name="deduct_qty" min="1" 
+                       placeholder="Qty" class="form-control form-control-sm mb-1" required>
+                <button type="submit" class="btn btn-sm btn-danger w-100">
+                  <i class="fas fa-minus"></i> Deduct
                 </button>
               </form>
             </div>
@@ -162,7 +185,7 @@
         
         {% if not products %}
         <tr>
-          <td colspan="11" class="text-center py-5 text-muted">
+          <td colspan="12" class="text-center py-5 text-muted">
             <i class="fas fa-box-open fa-3x mb-3 opacity-50"></i>
             <p>No products found{% if search_query %} matching "{{ search_query }}"{% endif %}.</p>
           </td>

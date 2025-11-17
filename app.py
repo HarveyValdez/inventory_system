@@ -617,8 +617,16 @@ def edit_product(id):
         return redirect(url_for('login'))
 
     product = Product.query.get_or_404(id)
+    
+    # Store original values 
+    original_stock = product.stock
+    original_price = product.price
+    original_name = product.name
 
     if request.method == 'POST':
+        # edit reason
+        edit_reason = request.form.get('edit_reason', '').strip()
+        
         # Update product 
         product.name = request.form['name']
         product.brand = request.form.get('brand')
@@ -631,40 +639,38 @@ def edit_product(id):
         # Handle image update
         image_file = save_uploaded_file(request.files.get('image'))
         if image_file:
-            # Optionally delete old image here
             product.image = image_file
 
-        db.session.commit()
+        # ✅ LOG TO STOCK HISTORY 
+        if product.stock != original_stock:
+            history = StockHistory(
+                product_id=product.id,
+                product_name=product.name,
+                old_stock=original_stock,
+                new_stock=product.stock,
+                change_reason=f"Stock edited via update: {edit_reason}" if edit_reason else "Stock edited via update",
+                user_id=session['user_id'],
+                username=session['username']
+            )
+            db.session.add(history)
 
-        # Log activity
+        # ✅ LOG TO ACTIVITY LOG 
+        activity_msg = f"{session['role'].capitalize()} edited product"
+        if edit_reason:
+            activity_msg += f": {edit_reason}"
+            
         log = ActivityLog(
             user_id=session['user_id'],
             username=session['username'],
-            action=f"{session['role'].capitalize()} edited product",
+            action=activity_msg,
             product_name=product.name
         )
         db.session.add(log)
 
-        # Update low stock alerts
-        existing_alert = StockAlert.query.filter_by(product_id=product.id).first()
-        if product.stock <= 5:
-            if existing_alert:
-                existing_alert.stock = product.stock
-                existing_alert.alert_type = "Low Stock" if product.stock > 0 else "Out of Stock"
-            else:
-                alert = StockAlert(
-                    product_id=product.id,
-                    product_name=product.name,
-                    stock=product.stock,
-                    alert_type="Low Stock" if product.stock > 0 else "Out of Stock"
-                )
-                db.session.add(alert)
-        elif existing_alert:
-            db.session.delete(existing_alert)
-        
+        # Commit all changes
         db.session.commit()
 
-        flash('Product updated successfully!', 'success')
+        flash('✅ Product updated successfully!', 'success')
         return redirect(url_for('staff_dashboard' if session['role'] == 'staff' else 'index'))
 
     return render_template('edit_product.html', product=product)
