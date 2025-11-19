@@ -939,12 +939,12 @@ def inject_admin_alerts():
 
 @app.route('/')
 def homepage():
-    # ✅ REMOVE THE REDIRECT - Let logged-in users stay on homepage
+    
     total_products = Product.query.count()
     low_stock_count = Product.query.filter(Product.stock < 5).count()
     active_users = User.query.filter(User.is_active == True).count()
     
-    # Only fetch recent products if admin is logged in
+    
     recent_products = []
     if session.get('role') == 'admin':
         recent_products = Product.query.order_by(Product.created_at.desc()).limit(6).all()
