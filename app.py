@@ -140,6 +140,7 @@ class ActivityLog(db.Model):
     action = db.Column(db.String(200), nullable=False)
     product_name = db.Column(db.String(100))
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
+    changes = db.relationship('ProductChangeLog', backref='activity_log', lazy=True, cascade='all, delete-orphan')
 
 class StockAlert(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -163,6 +164,19 @@ class StockHistory(db.Model):
     product_name = db.Column(db.String(100), nullable=False)
     old_stock = db.Column(db.Integer, nullable=False)
     new_stock = db.Column(db.Integer, nullable=False)
+    change_reason = db.Column(db.String(200))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    username = db.Column(db.String(50))
+    timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
+
+class ProductChangeLog(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    activity_log_id = db.Column(db.Integer, db.ForeignKey('activity_log.id'))
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'), nullable=False)
+    product_name = db.Column(db.String(100), nullable=False)
+    field_name = db.Column(db.String(50), nullable=False)
+    old_value = db.Column(db.Text)
+    new_value = db.Column(db.Text)
     change_reason = db.Column(db.String(200))
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     username = db.Column(db.String(50))
@@ -198,7 +212,6 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-
         user = User.query.filter_by(username=username).first()
 
         if user and bcrypt.check_password_hash(user.password, password):
@@ -221,9 +234,9 @@ def login():
 
            
             if user.role == 'admin':
-                return redirect(url_for('admin_dashboard'))
+                return redirect(url_for('homepage'))
             elif user.role == 'staff':
-                return redirect(url_for('staff_dashboard'))
+                return redirect(url_for('homepage'))
         else:
             flash("Invalid username or password", "danger")
 
@@ -383,7 +396,7 @@ def staff_dashboard():
         flash("Access denied: Staff only.", "danger")
         return redirect(url_for('login'))
     
-    # 📊 CHART DATA: Stock 
+    # Get chart data
     from sqlalchemy import func
     chart_data = db.session.query(
         Product.category,
@@ -395,12 +408,15 @@ def staff_dashboard():
     
     chart_categories = [row.category for row in chart_data]
     chart_stocks = [row.total_stock for row in chart_data]
-
-    return render_template(
-        'staff_dashboard.html', 
+    
+    # Get recent products for staff
+    recent_products = Product.query.order_by(Product.created_at.desc()).limit(6).all()
+    
+    return render_template('staff_dashboard.html', 
         username=session['username'],
         chart_categories=chart_categories,
-        chart_stocks=chart_stocks
+        chart_stocks=chart_stocks,
+        recent_products=recent_products  # Add this
     )
 
 
@@ -506,7 +522,7 @@ def delete_user(id):
 # INVENTORY ROUTES
 # =====================================================
 
-@app.route('/')
+@app.route('/inventory')
 def index():
     if 'username' not in session:
         return redirect(url_for('login'))
@@ -618,16 +634,66 @@ def edit_product(id):
 
     product = Product.query.get_or_404(id)
     
-    # Store original values 
-    original_stock = product.stock
-    original_price = product.price
-    original_name = product.name
+    # Store original values for comparison
+    original_values = {
+        'name': product.name,
+        'stock': product.stock,
+        'price': product.price,
+        'brand': product.brand,
+        'category': product.category,
+        'size': product.size,
+        'size_unit': product.size_unit
+    }
 
     if request.method == 'POST':
-        # edit reason
+        # Get and validate reason
         edit_reason = request.form.get('edit_reason', '').strip()
+        if not edit_reason:
+            flash("❌ Edit reason is required!", "danger")
+            return render_template('edit_product.html', product=product)
+
+        # Create activity log entry first
+        activity_msg = f"{session['role'].capitalize()} edited product"
+        log = ActivityLog(
+            user_id=session['user_id'],
+            username=session['username'],
+            action=activity_msg,
+            product_name=product.name
+        )
+        db.session.add(log)
+        db.session.flush()  # Get log.id for foreign key
+
+        # Track field changes
+        changes = []
+        fields_to_check = ['name', 'brand', 'category', 'size', 'size_unit', 'stock', 'price']
         
-        # Update product 
+        for field in fields_to_check:
+            new_value = request.form.get(field)
+            if field in ['stock', 'price']:
+                new_value = float(new_value) if field == 'price' else int(new_value)
+            
+            if str(original_values[field]) != str(new_value):
+                changes.append({
+                    'field': field,
+                    'old': original_values[field],
+                    'new': new_value
+                })
+                
+                # Create detailed change log
+                change_log = ProductChangeLog(
+                    activity_log_id=log.id,
+                    product_id=product.id,
+                    product_name=product.name,
+                    field_name=field,
+                    old_value=str(original_values[field]),
+                    new_value=str(new_value),
+                    change_reason=edit_reason,
+                    user_id=session['user_id'],
+                    username=session['username']
+                )
+                db.session.add(change_log)
+
+        # Update product fields
         product.name = request.form['name']
         product.brand = request.form.get('brand')
         product.category = request.form.get('category')
@@ -641,36 +707,9 @@ def edit_product(id):
         if image_file:
             product.image = image_file
 
-        # ✅ LOG TO STOCK HISTORY 
-        if product.stock != original_stock:
-            history = StockHistory(
-                product_id=product.id,
-                product_name=product.name,
-                old_stock=original_stock,
-                new_stock=product.stock,
-                change_reason=f"Stock edited via update: {edit_reason}" if edit_reason else "Stock edited via update",
-                user_id=session['user_id'],
-                username=session['username']
-            )
-            db.session.add(history)
-
-        # ✅ LOG TO ACTIVITY LOG 
-        activity_msg = f"{session['role'].capitalize()} edited product"
-        if edit_reason:
-            activity_msg += f": {edit_reason}"
-            
-        log = ActivityLog(
-            user_id=session['user_id'],
-            username=session['username'],
-            action=activity_msg,
-            product_name=product.name
-        )
-        db.session.add(log)
-
-        # Commit all changes
         db.session.commit()
 
-        flash('✅ Product updated successfully!', 'success')
+        flash(f'✅ Product updated successfully! {len(changes)} fields changed.', 'success')
         return redirect(url_for('staff_dashboard' if session['role'] == 'staff' else 'index'))
 
     return render_template('edit_product.html', product=product)
@@ -878,7 +917,10 @@ def search_users():
 @app.route('/activity_logs')
 @admin_only
 def activity_logs():
-    logs = ActivityLog.query.order_by(ActivityLog.timestamp.desc()).all()
+    # Eager load the changes relationship to avoid N+1 queries
+    logs = ActivityLog.query.options(
+        db.joinedload(ActivityLog.changes)
+    ).order_by(ActivityLog.timestamp.desc()).all()
     return render_template('activity_logs.html', logs=logs)
 
 
@@ -891,6 +933,27 @@ def inject_admin_alerts():
         'low_stock_count': len(low_stock_products)
     }
 
+# =====================================================
+# HOMEPAGE ROUTE
+# =====================================================
+
+@app.route('/')
+def homepage():
+    # ✅ REMOVE THE REDIRECT - Let logged-in users stay on homepage
+    total_products = Product.query.count()
+    low_stock_count = Product.query.filter(Product.stock < 5).count()
+    active_users = User.query.filter(User.is_active == True).count()
+    
+    # Only fetch recent products if admin is logged in
+    recent_products = []
+    if session.get('role') == 'admin':
+        recent_products = Product.query.order_by(Product.created_at.desc()).limit(6).all()
+    
+    return render_template('homepage.html',
+                         total_products=total_products,
+                         low_stock_count=low_stock_count,
+                         active_users=active_users,
+                         recent_products=recent_products)
 
 # =====================================================
 # CLI COMMANDS

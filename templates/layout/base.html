@@ -37,7 +37,7 @@
   <nav class="navbar navbar-expand-lg navbar-dark">
     <div class="container-fluid">
       <!-- Logo  -->
-      <a class="navbar-brand" href="{{ url_for('index') }}">
+      <a class="navbar-brand" href="{{ url_for('homepage') }}">
         <img src="https://i.postimg.cc/76xDVqfs/578643265-728091226281045-3919343634659483221-n.png" 
             alt="Vortex Inventory" 
             class="logo">
@@ -62,7 +62,7 @@
             <li class="nav-item">
               <span class="nav-user">Hi, {{ session['username'] }}</span>
             </li>
-            
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">inventory</a></li>
             {% if session.get('role') == 'admin' %}
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('admin_dashboard') }}">

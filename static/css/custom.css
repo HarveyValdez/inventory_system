@@ -1034,3 +1034,64 @@ th {
     filter: drop-shadow(0 0 6px rgba(0, 184, 148, 0.8));
   }
 }
+
+/* Add these to your existing custom.css */
+
+.glass-card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: blur(20px) !important;
+  border: 1px solid var(--glass-border) !important;
+  transition: all var(--transition-medium);
+}
+
+.glass-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-accent);
+}
+
+.pulse-btn {
+  animation: pulse 2s infinite;
+}
+
+.gradient-text {
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-weight: 700;
+}
+
+.bg-tertiary {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Parallax effect for hero */
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(0,184,148,0.05) 0%, transparent 70%);
+  animation: rotate 20s linear infinite;
+}
+
+@keyframes rotate {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Staff dashboard row animations */
+.fade-in-row {
+  opacity: 0;
+  transform: translateX(-20px);
+  animation: fadeInLeft 0.5s ease-out forwards;
+}
+
+@keyframes fadeInLeft {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}

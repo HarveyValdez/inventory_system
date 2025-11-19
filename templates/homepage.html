@@ -1,0 +1,184 @@
+{% extends 'layout/base.html' %}
+{% block title %}Vortex Inventory - Home{% endblock %}
+
+{% block head %}
+<style>
+  /* Homepage-specific hero styles */
+  .hero-section {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .hero-gradient {
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+    font-size: 4rem;
+    letter-spacing: -2px;
+    animation: gradientShift 3s ease-in-out infinite;
+  }
+  
+  @keyframes gradientShift {
+    0%, 100% { filter: hue-rotate(0deg); }
+    50% { filter: hue-rotate(20deg); }
+  }
+  
+  .floating-cards {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+  
+  .particle {
+    position: absolute;
+    background: var(--accent-primary);
+    border-radius: 50%;
+    opacity: 0.1;
+    animation: float 6s ease-in-out infinite;
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px) rotate(0deg); }
+    50% { transform: translateY(-20px) rotate(180deg); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section">
+  <div class="floating-cards" id="particleContainer"></div>
+  <div class="container text-center">
+    <h1 class="hero-gradient mb-4">Vortex Inventory</h1>
+    <p class="lead text-muted mb-5" style="font-size: 1.5rem;">
+      Next-Gen Footwear Management
+    </p>
+    
+    <div class="row justify-content-center mb-5">
+      <div class="col-md-8">
+        <div class="card glass-card p-4">
+          <div class="row text-center">
+            <div class="col-md-4">
+              <h2 class="display-4 text-success" id="productCount" data-target="{{ total_products }}">0</h2>
+              <p class="text-muted">Total Products</p>
+            </div>
+            <div class="col-md-4">
+              <h2 class="display-4 text-warning" id="lowStockCount" data-target="{{ low_stock_count }}">0</h2>
+              <p class="text-muted">Low Stock Alerts</p>
+            </div>
+            <div class="col-md-4">
+              <h2 class="display-4 text-info" id="activeUsers" data-target="{{ active_users }}">0</h2>
+              <p class="text-muted">Active Users</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if not session.get('username') %}
+      <a href="{{ url_for('login') }}" class="btn btn-primary btn-lg me-3 pulse-btn">
+        <i class="fas fa-rocket"></i> LOGIN
+      </a>
+        <a href="#features" class="btn btn-outline-secondary btn-lg">
+            Explore Features
+      </a>
+    {% elif session.get('role') == 'admin' %}
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-success btn-lg pulse-btn">
+            <i class="fas fa-arrow-right"></i> Go to Dashboard
+        </a>
+        <a href="#features" class="btn btn-outline-secondary btn-lg">
+            Explore Features
+        </a>
+    {% elif session.get('role') == 'staff' %}
+        <a href="{{ url_for('staff_dashboard') }}" class="btn btn-success btn-lg pulse-btn">
+            <i class="fas fa-arrow-right"></i> Go to Dashboard
+        </a>
+        <a href="#features" class="btn btn-outline-secondary btn-lg">
+            Explore Features
+        </a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Features Section -->
+<section id="features" class="py-5">
+  <div class="container">
+    <h2 class="text-center mb-5 gradient-text">Powerful Features</h2>
+    <div class="row g-4">
+      <div class="col-md-4 feature-card">
+        <div class="card h-100 glass-card">
+          <div class="card-body text-center">
+            <i class="fas fa-shoe-prints fa-3x mb-3 text-primary"></i>
+            <h4>Smart Inventory</h4>
+            <p>Track every shoe with photos, variants, and real-time stock updates</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 feature-card">
+        <div class="card h-100 glass-card">
+          <div class="card-body text-center">
+            <i class="fas fa-chart-line fa-3x mb-3 text-success"></i>
+            <h4>Live Analytics</h4>
+            <p>Visual dashboards with Chart.js powered stock-by-category insights</p>
+          </div>
+        </div>
+      </div>
+      <div class="col-md-4 feature-card">
+        <div class="card h-100 glass-card">
+          <div class="card-body text-center">
+            <i class="fas fa-shield-alt fa-3x mb-3 text-warning"></i>
+            <h4>Audit Trail</h4>
+            <p>Complete activity logging with field-level change tracking</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Recent Products Carousel -->
+{% if session.get('role') == 'admin' %}
+<section class="py-5 bg-tertiary">
+  <div class="container">
+    <h2 class="text-center mb-5 gradient-text">Latest Additions</h2>
+    <div class="row g-4" id="productCarousel">
+      {% for product in recent_products[:6] %}
+        <div class="col-md-4 product-slide">
+          <div class="card glass-card h-100">
+            {% if product.image %}
+              <img src="{{ url_for('static', filename='uploads/' + product.image) }}" 
+                   class="card-img-top" alt="{{ product.name }}" 
+                   style="height: 200px; object-fit: cover;">
+            {% else %}
+              <div class="card-img-top d-flex align-items-center justify-content-center" 
+                   style="height: 200px; background: var(--bg-tertiary);">
+                <i class="fas fa-image fa-3x text-muted"></i>
+              </div>
+            {% endif %}
+            <div class="card-body">
+              <h5 class="card-title">{{ product.name }}</h5>
+              <p class="card-text">
+                Stock: <span class="badge bg-{{ 'warning' if product.stock < 5 else 'success' }}">
+                  {{ product.stock }}
+                </span>
+                <br>Price: ₱{{ "%.2f"|format(product.price) }}
+              </p>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/homepage.js') }}"></script>
+{% endblock %}

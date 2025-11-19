@@ -3,20 +3,53 @@
 {% block content %}
 <div class="container mt-4">
   <h3 class="text-center mb-4">📜 Activity Logs</h3>
-  <table class="table table-sm light-table">
-
-    <thead>
-      <tr><th>User</th><th>Action</th><th>Timestamp</th></tr>
-    </thead>
-    <tbody>
-      {% for log in logs %}
-        <tr>
-          <td>{{ log.username }}</td>
-          <td>{{ log.action }}</td>
-          <td>{{ log.timestamp|manila_time }}</td>  
-        </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  
+  {% for log in logs %}
+    <div class="card mb-3 shadow-sm">
+      <div class="card-body">
+        <div class="row align-items-center">
+          <div class="col-md-2"><strong>{{ log.username }}</strong></div>
+          <div class="col-md-6">{{ log.action }}</div>
+          <div class="col-md-3"><small>{{ log.timestamp|manila_time }}</small></div>
+          <div class="col-md-1">
+            {% if log.changes %}
+              <button class="btn btn-sm btn-info" type="button" data-bs-toggle="collapse" 
+                      data-bs-target="#details-{{ log.id }}" aria-expanded="false">
+                <i class="fas fa-plus"></i>
+              </button>
+            {% endif %}
+          </div>
+        </div>
+        
+        <div class="collapse mt-3" id="details-{{ log.id }}">
+          {% if log.changes %}
+            <p class="mb-2"><strong>Reason for change:</strong> {{ log.changes[0].change_reason }}</p>
+            <table class="table table-sm table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th>Field</th>
+                  <th>Previous Value</th>
+                  <th>New Value</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for change in log.changes %}
+                  <tr>
+                    <td><code>{{ change.field_name }}</code></td>
+                    <td class="text-danger">{{ change.old_value or 'N/A' }}</td>
+                    <td class="text-success">{{ change.new_value or 'N/A' }}</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  
+  {% if not logs %}
+    <p class="text-center text-muted">No activity logs found.</p>
+  {% endif %}
 </div>
 {% endblock %}
