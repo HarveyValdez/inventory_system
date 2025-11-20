@@ -1,0 +1,152 @@
+paste this in the terminal (recommended to use in powershell)
+this will install all the dependencies
+pip install -r requirements.txt
+Flask==2.3.3
+Flask-SQLAlchemy==3.0.5
+Flask-Bcrypt==1.0.1
+python-dotenv==1.0.0
+filetype==1.2.0
+PyMySQL==1.1.0
+
+
+Paste this in WAMP mysql
+-- ==========================================
+-- VORTEX INVENTORY SYSTEM - MySQL Setup
+-- ==========================================
+
+-- Create database (run as root if needed)
+CREATE DATABASE IF NOT EXISTS inventory_db CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- Use the database
+USE inventory_db;
+
+-- Users table
+CREATE TABLE IF NOT EXISTS `user` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `username` varchar(50) NOT NULL,
+  `password` varchar(255) NOT NULL,
+  `full_name` varchar(100) NOT NULL,
+  `email` varchar(100) NOT NULL,
+  `phone` varchar(20) DEFAULT NULL,
+  `department` varchar(50) DEFAULT 'General',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `role` varchar(10) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `username` (`username`),
+  UNIQUE KEY `unique_email` (`email`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Products table
+CREATE TABLE IF NOT EXISTS `product` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(100) NOT NULL,
+  `stock` int DEFAULT NULL,
+  `price` float NOT NULL,
+  `image` varchar(255) DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `size` varchar(20) DEFAULT NULL,
+  `size_unit` varchar(10) DEFAULT NULL,
+  `brand` varchar(50) DEFAULT NULL,
+  `category` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Activity logs table
+CREATE TABLE IF NOT EXISTS `activity_log` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `username` varchar(50) DEFAULT NULL,
+  `action` varchar(100) DEFAULT NULL,
+  `product_name` varchar(100) DEFAULT NULL,
+  `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Stock history table
+CREATE TABLE IF NOT EXISTS `stock_history` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int NOT NULL,
+  `product_name` varchar(100) NOT NULL,
+  `old_stock` int NOT NULL,
+  `new_stock` int NOT NULL,
+  `change_reason` varchar(200) DEFAULT NULL,
+  `user_id` int DEFAULT NULL,
+  `username` varchar(50) DEFAULT NULL,
+  `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `product_id` (`product_id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Stock alerts table
+CREATE TABLE IF NOT EXISTS `stock_alert` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int DEFAULT NULL,
+  `product_name` varchar(100) DEFAULT NULL,
+  `stock` int DEFAULT NULL,
+  `alert_type` varchar(50) DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `product_id` (`product_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Login activity table
+CREATE TABLE IF NOT EXISTS `login_activity` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `username` varchar(50) DEFAULT NULL,
+  `action` varchar(50) DEFAULT NULL,
+  `ip_address` varchar(45) DEFAULT NULL,
+  `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Product change log table (for detailed field tracking)
+CREATE TABLE IF NOT EXISTS `product_change_log` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `activity_log_id` int DEFAULT NULL,
+  `product_id` int NOT NULL,
+  `product_name` varchar(100) NOT NULL,
+  `field_name` varchar(50) NOT NULL,
+  `old_value` text,
+  `new_value` text,
+  `change_reason` varchar(200) DEFAULT NULL,
+  `user_id` int DEFAULT NULL,
+  `username` varchar(50) DEFAULT NULL,
+  `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `activity_log_id` (`activity_log_id`),
+  KEY `product_id` (`product_id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ==========================================
+-- SAMPLE DATA - Default Admin Account
+-- Password: AdminPass123!
+-- ==========================================
+
+INSERT INTO `user` (`id`, `username`, `password`, `full_name`, `email`, `phone`, `department`, `is_active`, `created_at`, `role`) VALUES
+(1, 'admin', '$2b$12$YourBcryptHashHere', 'System Administrator', 'admin@vortex.local', NULL, 'Management', 1, NOW(), 'admin');
+
+-- Sample products (optional)
+INSERT INTO `product` (`name`, `stock`, `price`, `brand`, `category`, `size`, `size_unit`) VALUES
+('Nike Air Max', 25, 6500.00, 'Nike', 'Sneakers', '10', 'US'),
+('Adidas Ultraboost', 18, 7200.00, 'Adidas', 'Running', '9.5', 'UK');
+
+-- To generate admin password hash, use:
+-- python -c "from flask_bcrypt import Bcrypt; print(Bcrypt().generate_password_hash('YourPassword').decode('utf-8'))"
+
+
+
+
+
+
+
+
+CREATE ADMIN ACCOUNT
+Run this in your project folder:
+flask shell
+flask create-admin

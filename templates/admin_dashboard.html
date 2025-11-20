@@ -1,12 +1,118 @@
-{% extends "layout/base.html" %}
+{% extends 'layout/base.html' %}
 {% block title %}Admin Dashboard{% endblock %}
+
 {% block content %}
-<div class="text-center mt-5">
-  <h2>👑 Welcome, {{ session['username'] }} (Admin)</h2>
-  <p>You can manage all inventory items and users here.</p>
-  <div class="d-flex justify-content-center gap-3 flex-wrap mt-4">
-    <a href="{{ url_for('index') }}" class="btn btn-success">Go to Inventory</a>
-    <a href="{{ url_for('register_staff') }}" class="btn btn-primary">Register New Staff</a>
+<div class="container mt-4">
+  <h3 class="mb-3"> Welcome, {{ username }} (Admin)</h3>
+
+  <!-- Dashboard cards -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Total Items</h6>
+        <h3>{{ total_items }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Low Stock Items</h6>
+        <h3>{{ low_stock_count }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Items Added Today</h6>
+        <h3>{{ items_added_today }}</h3>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card p-3">
+        <h6>Total Staff Accounts</h6>
+        <h3>{{ total_staff }}</h3>
+      </div>
+    </div>
+  </div>
+
+  <!-- Low stock warning -->
+  {% if low_stock_count > 0 %}
+  <div class="alert alert-danger">
+    <strong>🚨 Alert:</strong> {{ low_stock_count }} item(s) need immediate restocking!
+  </div>
+  {% endif %}
+
+
+
+  <!-- 📊 CHART SECTION -->
+  <div class="card p-3 mb-3">
+    <h5>📊 Stock by Category</h5>
+    <div style="height: 250px; position: relative;">
+      <canvas id="stockChart" 
+              data-categories="{{ chart_categories|tojson|forceescape }}" 
+              data-stocks="{{ chart_stocks|tojson|forceescape }}"></canvas>
+    </div>
+  </div>
+
+    <!-- 📅 DATE RANGE FILTER -->
+  <div class="card p-3 mb-3">
+      <h5>📅 Filter Recent Activities</h5>
+      <form method="GET" class="row g-2">
+          <div class="col-md-4">
+              <label class="form-label">Start Date</label>
+              <input type="date" name="start_date" class="form-control" 
+                    value="{{ request.args.get('start_date', '') }}">
+          </div>
+          <div class="col-md-4">
+              <label class="form-label">End Date</label>
+              <input type="date" name="end_date" class="form-control" 
+                    value="{{ request.args.get('end_date', '') }}">
+          </div>
+          <div class="col-md-4 d-flex align-items-end">
+              <button type="submit" class="btn btn-primary me-2">Apply Filter</button>
+              <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">Clear</a>
+          </div>
+      </form>
+  </div>
+
+  <!-- Recent activities -->
+  <div class="card p-3 mb-3">
+    <h5>Recent Activity</h5>
+    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+      <table class="table table-sm light-table">
+        <thead><tr><th>User</th><th>Action</th><th>Time</th></tr></thead>
+        <tbody>
+          {% for a in recent_activities %}
+            <tr>
+              <td>{{ a.username }}</td>
+              <td>{{ a.action }}</td>
+              <td>{{ a.timestamp|manila_time }}</td>  
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Recent logins -->
+  <div class="card p-3 mb-3">
+    <h5>Recent Logins</h5>
+    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
+      <table class="table table-sm light-table">
+        <thead><tr><th>Username</th><th>IP Address</th><th>Time</th></tr></thead>
+       <tbody>
+          {% for log in recent_logins %}
+            <tr>
+              <td>{{ log.username }}</td>
+              <td>{{ log.ip_address }}</td>
+              <td>{{ log.timestamp|manila_time }}</td>  
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/chart.js') }}"></script>
 {% endblock %}

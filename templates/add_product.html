@@ -1,30 +1,78 @@
-{% extends "layout/base.html" %}
-{% block title %}Add Product{% endblock %}
-
+{% extends 'layout/base.html' %}
+{% block title %}Add Footwear{% endblock %}
 {% block content %}
-<div class="container mt-5" style="max-width: 600px;">
+<div class="container mt-5" style="max-width: 700px;">
   <div class="card shadow p-4">
-    <h3 class="text-center mb-4">➕ Add New Product</h3>
+    <h3 class="text-center mb-3">➕ Add New Footwear</h3>
 
-    <form method="POST" action="{{ url_for('add_product') }}">
-      <div class="mb-3">
-        <label class="form-label">Product Name</label>
-        <input type="text" name="name" class="form-control" placeholder="Enter product name" required>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data">
+      <div class="row mb-3">
+        <div class="col">
+          <label>Footwear Name</label>
+          <input type="text" name="name" class="form-control" required maxlength="100">
+        </div>
+        <div class="col">
+          <label>Brand</label>
+          <input type="text" name="brand" class="form-control" placeholder="e.g., Nike, Adidas" maxlength="50">
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col">
+          <label>Category</label>
+          <select name="category" class="form-select">
+            <option value="Sneakers">Sneakers</option>
+            <option value="Running">Running</option>
+            <option value="Boots">Boots</option>
+            <option value="Sandals">Sandals</option>
+            <option value="Formal">Formal</option>
+          </select>
+        </div>
+        <div class="col">
+          <label>Size</label>
+          <input type="text" name="size" class="form-control" placeholder="e.g., 9.5" required 
+                 pattern="[0-9]+(\.[0-9])?" title="Enter a valid size (e.g., 9.5)">
+        </div>
+        <div class="col">
+          <label>Unit</label>
+          <select name="size_unit" class="form-select">
+            <option value="US">US</option>
+            <option value="UK">UK</option>
+            <option value="EU">EU</option>
+            <option value="CM">CM</option>
+            <option value="PH">PH</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row mb-3">
+        <div class="col">
+          <label>Stock Quantity</label>
+          <input type="number" name="stock" class="form-control" min="0" max="99999" required>
+        </div>
+        <div class="col">
+          <label>Price (₱)</label>
+          <input type="number" name="price" class="form-control" step="0.01" min="0" max="999999" required>
+        </div>
       </div>
 
       <div class="mb-3">
-        <label class="form-label">Quantity</label>
-        <input type="number" name="quantity" class="form-control" placeholder="Enter quantity" min="0" required>
+        <label class="form-label">Product Image (optional)</label>
+        <input type="file" name="image" class="form-control" accept="image/*">
+        <small class="text-muted">JPG, PNG, or GIF (max 5MB)</small>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Price (₱)</label>
-        <input type="number" name="price" class="form-control" placeholder="Enter price" step="0.01" min="0" required>
-      </div>
-
-      <div class="d-flex justify-content-between">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">⬅ Back</a>
-        <button type="submit" class="btn btn-success">Save Product</button>
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-success w-100">Add Product</button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary mt-2 w-100">Cancel</a>
       </div>
     </form>
   </div>

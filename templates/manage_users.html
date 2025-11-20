@@ -4,34 +4,67 @@
 {% block content %}
 <div class="container mt-4">
   <h2 class="text-center mb-4">👥 Manage Staff Accounts</h2>
+  
+  <div class="mb-3 text-end">
+    <a href="{{ url_for('register_staff') }}" class="btn btn-success">
+      <i class="fas fa-plus"></i> Add New Staff
+    </a>
+  </div>
 
   {% if users %}
-    <table class="table table-bordered table-striped text-center">
-      <thead class="table-dark">
-        <tr>
-          <th>ID</th>
-          <th>Username</th>
-          <th>Role</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for user in users %}
+    <form method="GET" action="{{ url_for('search_users') }}" class="d-flex mb-3">
+        <input type="text" name="query" class="form-control me-2" 
+               placeholder="Search by name, username, email or department..." 
+               value="{{ search_query if search_query else '' }}">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+    </form>
+
+    <div class="table-responsive">
+      <table class="table table-sm light-table">
+        <thead>
           <tr>
-            <td>{{ user.id }}</td>
-            <td>{{ user.username }}</td>
-            <td>{{ user.role }}</td>
-            <td>
-              <a href="{{ url_for('delete_user', id=user.id) }}" 
-                 class="btn btn-danger btn-sm"
-                 onclick="return confirm('Are you sure you want to delete {{ user.username }}?');">
-                Delete
-              </a>
-            </td>
+            <th>ID</th>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Department</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Registered</th>
+            <th>Actions</th>
           </tr>
-        {% endfor %}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {% for user in users %}
+            <tr>
+              <td>{{ user.id }}</td>
+              <td><strong>{{ user.username }}</strong></td>
+              <td>{{ user.full_name }}</td>
+              <td>{{ user.email }}</td>
+              <td>{{ user.phone or 'N/A' }}</td>
+              <td><span class="badge bg-info">{{ user.department }}</span></td>
+              <td><span class="badge bg-secondary">{{ user.role }}</span></td>
+              <td>
+                {% if user.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+              </td>
+              <td><small>{{ user.created_at|manila_time }}</small></td>
+              <td>
+                <a href="{{ url_for('delete_user', id=user.id) }}" 
+                   class="btn btn-danger btn-sm"
+                   onclick="return confirm('🚨 Delete user: {{ user.username }}? This cannot be undone!');">
+                  <i class="fas fa-trash"></i> Delete
+                </a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
   {% else %}
     <p class="text-center text-muted">No staff accounts found.</p>
   {% endif %}

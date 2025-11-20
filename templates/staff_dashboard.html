@@ -1,11 +1,72 @@
-{% extends "layout/base.html" %}
+{% extends 'layout/base.html' %}
 {% block title %}Staff Dashboard{% endblock %}
 {% block content %}
-<div class="text-center mt-5">
-  <h2>👷 Welcome, {{ session['username'] }} (Staff)</h2>
-  <p>You can view and update product records assigned to you.</p>
-  <div class="mt-4">
-    <a href="{{ url_for('index') }}" class="btn btn-primary">Go to Inventory</a>
+<div class="container mt-4">
+  <div class="text-center">
+    <h2>👷 Welcome, {{ username }} (Staff)</h2>
+    <p class="text-muted">You can view and update product records.</p>
   </div>
+
+  <!-- 📊 CHART SECTION-->
+  <div class="card p-3 mb-3 mt-4">
+    <h5>📊 Stock by Category</h5>
+    <div style="height: 250px; position: relative;">
+      <canvas id="stockChart" 
+              data-categories="{{ chart_categories|tojson|forceescape }}" 
+              data-stocks="{{ chart_stocks|tojson|forceescape }}"></canvas>
+    </div>
+  </div>
+
+  <!-- RECENT PRODUCTS TABLE -->
+  <section class="py-5 bg-tertiary">
+    <div class="container">
+      <h2 class="text-center mb-5 gradient-text">
+        <i class="fas fa-clock me-2"></i>Latest Additions
+      </h2>
+      <div class="row g-4">
+        {% for product in recent_products %}
+          <div class="col-md-4 product-slide">
+            <div class="card glass-card h-100">
+              {% if product.image %}
+                <img src="{{ url_for('static', filename='uploads/' + product.image) }}" 
+                    class="card-img-top" alt="{{ product.name }}" 
+                    style="height: 180px; object-fit: cover;">
+              {% else %}
+                <div class="card-img-top d-flex align-items-center justify-content-center" 
+                    style="height: 180px; background: var(--bg-tertiary);">
+                  <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+              {% endif %}
+              <div class="card-body">
+                <h5 class="card-title">{{ product.name }}</h5>
+                <p class="card-text mb-2">
+                  Stock: <span class="badge bg-{{ 'warning' if product.stock < 5 else 'success' }}">
+                    {{ product.stock }}
+                  </span>
+                </p>
+                <p class="card-text">
+                  <strong>₱{{ "%.2f"|format(product.price) }}</strong>
+                </p>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </section>
+  
 </div>
+
+<!-- Chart.js CDN and Custom JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/chart.js') }}"></script>
+
+{% block head %}
+<style>
+  .bg-tertiary {
+    background: var(--bg-tertiary) !important;
+  }
+</style>
+{% endblock %}
+
 {% endblock %}

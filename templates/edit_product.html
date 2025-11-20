@@ -1,32 +1,108 @@
-{% extends "layout/base.html" %}
-{% block title %}Edit Product{% endblock %}
+{% extends 'layout/base.html' %}
+{% block title %}Edit Footwear{% endblock %}
 
 {% block content %}
-<div class="container mt-5" style="max-width: 600px;">
+<div class="container mt-5" style="max-width: 700px;">
   <div class="card shadow p-4">
-    <h3 class="text-center mb-4">✏️ Edit Product</h3>
+    <h3 class="text-center mb-3">✏️ Edit Footwear Details</h3>
 
-    <form method="POST" action="{{ url_for('edit_product', id=product.id) }}">
-      <div class="mb-3">
-        <label class="form-label">Product Name</label>
-        <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST" enctype="multipart/form-data" 
+          onsubmit="return confirmEditWithReason();">
+      
+      <!-- Product Fields -->
+      <div class="row mb-3">
+        <div class="col">
+          <label>Footwear Name</label>
+          <input type="text" name="name" value="{{ product.name }}" class="form-control" required maxlength="100">
+        </div>
+        <div class="col">
+          <label>Brand</label>
+          <input type="text" name="brand" value="{{ product.brand }}" class="form-control" maxlength="50">
+        </div>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Quantity</label>
-        <input type="number" name="quantity" class="form-control" value="{{ product.quantity }}" min="0" required>
+      <div class="row mb-3">
+        <div class="col">
+          <label>Category</label>
+          <select name="category" class="form-select">
+            {% for cat in ['Sneakers', 'Running', 'Boots', 'Sandals', 'Formal'] %}
+              <option value="{{ cat }}" {% if product.category == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col">
+          <label>Size</label>
+          <input type="text" name="size" value="{{ product.size }}" class="form-control" 
+                 pattern="[0-9]+(\.[0-9])?" title="Enter a valid size (e.g., 9.5)">
+        </div>
+        <div class="col">
+          <label>Unit</label>
+          <select name="size_unit" class="form-select">
+            {% for unit in ['US', 'UK', 'EU', 'CM', 'PH'] %}
+              <option value="{{ unit }}" {% if product.size_unit == unit %}selected{% endif %}>{{ unit }}</option>
+            {% endfor %}
+          </select>
+        </div>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Price (₱)</label>
-        <input type="number" name="price" class="form-control" value="{{ product.price }}" step="0.01" min="0" required>
+      <div class="row mb-3">
+        <div class="col">
+          <label>Stock Quantity</label>
+          <input type="number" name="stock" value="{{ product.stock }}" class="form-control" min="0" max="99999" required>
+        </div>
+        <div class="col">
+          <label>Price (₱)</label>
+          <input type="number" name="price" value="{{ product.price }}" class="form-control" step="0.01" min="0" max="999999" required>
+        </div>
       </div>
 
-      <div class="d-flex justify-content-between">
-        <a href="{{ url_for('index') }}" class="btn btn-secondary">⬅ Back</a>
-        <button type="submit" class="btn btn-primary">Update Product</button>
+      <!-- Image Upload -->
+      <div class="mb-3">
+        <label class="form-label">Change Image (optional)</label>
+        <input type="file" name="image" class="form-control" accept="image/*">
+        
+        {% if product.image %}
+          <div class="mt-3 p-3 rounded" style="background: rgba(255,255,255,0.05);">
+            <small class="text-muted d-block mb-2">Current Image:</small>
+            <img src="{{ url_for('static', filename='uploads/' + product.image) }}"
+                alt="Current image" class="img-thumbnail" style="max-width: 150px;">
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Reason for Edit -->
+      <div class="mb-3">
+        <label class="form-label">Reason for Edit <span class="text-danger">*</span></label>
+        <textarea name="edit_reason" class="form-control" rows="2" 
+                  placeholder="e.g., Price adjustment, Stock correction, etc."
+                  maxlength="200" required></textarea>
+        <small class="text-muted">This is required and will be recorded in the history log</small>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="text-center mt-3">
+        <button type="submit" class="btn btn-primary w-100">Save Changes</button>
+        <a href="{{ url_for('index') }}" class="btn btn-secondary w-100 mt-2">Cancel</a>
       </div>
     </form>
   </div>
 </div>
+
+<script>
+function confirmEditWithReason() {
+  const reason = document.querySelector('textarea[name="edit_reason"]').value;
+  const message = reason 
+    ? `⚠️ Save changes with reason: "${reason}"?` 
+    : "⚠️ Save changes without a reason?";
+  return confirm(message);
+}
+</script>
 {% endblock %}

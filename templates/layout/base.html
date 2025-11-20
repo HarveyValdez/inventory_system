@@ -1,28 +1,129 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>{% block title %}Inventory System{% endblock %}</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-</head>
-<body>
-  {% include 'layout/navbar.html' %}
+  <meta charset="utf-8" />
+  <!-- mobile viewport -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  
+  <title>{% block title %}Footwear Inventory{% endblock %}</title>
 
-  <div class="container mt-4">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+  <!-- Bootstrap JS Bundle  -->
+
+  {% block head %}{% endblock %}
+</head>
+<body class="app-body">
+
+  <!-- background -->
+  <div class="bubbles" aria-hidden="true">
+    <div class="bubble b1"></div>
+    <div class="bubble b2"></div>
+    <div class="bubble b3"></div>
+    <div class="bubble b4"></div>
+    <div class="bubble b5"></div>
   </div>
 
-  {% block content %}{% endblock %}
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container-fluid">
+      <!-- Logo  -->
+      <a class="navbar-brand" href="{{ url_for('homepage') }}">
+        <img src="{{ url_for('static', filename='images/logo.png') }}"  
+            alt="Vortex Inventory" 
+            class="logo">
+        <span>Vortex Inventory</span>
+      </a>
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+      <!--MOBILE MENU BUTTON  -->
+      <button class="navbar-toggler ms-auto" 
+              type="button" 
+              data-bs-toggle="collapse" 
+              data-bs-target="#navbarNav"
+              aria-controls="navbarNav" 
+              aria-expanded="false" 
+              aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <!-- Navbar Links -->
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ms-auto">
+          {% if session.get('username') %}
+            <li class="nav-item">
+              <span class="nav-user">Hi, {{ session['username'] }}</span>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">inventory</a></li>
+            {% if session.get('role') == 'admin' %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                  Dashboard
+                  {% if low_stock_count and low_stock_count > 0 %}
+                    <span class="nav-badge">{{ low_stock_count }}</span>
+                  {% endif %}
+                </a>
+              </li>
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('register_staff') }}">Add Staff</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('manage_users') }}">Manage Users</a></li>
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('activity_logs') }}">Logs</a></li>
+            {% elif session.get('role') == 'staff' %}
+              <li class="nav-item"><a class="nav-link" href="{{ url_for('staff_dashboard') }}">Dashboard</a></li>
+            {% endif %}
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('change_password') }}">Account</a></li>
+            <li class="nav-item">
+              <a class="nav-link text-danger" href="{{ url_for('logout') }}" onclick="return confirmLogout();">Logout</a>
+            </li>
+          {% else %}
+            <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Login</a></li>
+          {% endif %}
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main-container">
+    <div class="container py-4">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          <div class="flash-wrap">
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer-minimal text-center py-3">
+    <small class="text-light">© {{ config.SITE_NAME if config.SITE_NAME is defined else 'Footwear Inventory' }} </small>
+  </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Logout Confirmation -->
+  <script>
+  function confirmLogout() {
+    const username = "{{ session['username'] if session['username'] else 'User' }}";
+    return confirm(`⚠️ Are you sure you want to logout ${username}?`);
+  }
+  </script>
+
 </body>
 </html>
