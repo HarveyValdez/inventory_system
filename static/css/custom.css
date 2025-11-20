@@ -1095,3 +1095,14 @@ th {
     transform: translateX(0);
   }
 }
+
+@media (max-width: 768px) {
+  .table-responsive table {
+    font-size: 0.85rem;
+  }
+  
+  .table-responsive td, .table-responsive th {
+    padding: 0.5rem;
+    white-space: normal !important; /* Allow wrapping if needed */
+  }
+}
