@@ -4,6 +4,7 @@
 import os
 import filetype
 import csv
+import re
 from io import StringIO
 from datetime import datetime, timezone, timedelta  
 from functools import wraps
@@ -961,18 +962,63 @@ def homepage():
 
 @app.cli.command('create-admin')
 def create_admin():
-    """Create an admin user from the command line"""
-    username = input('Enter admin username: ')
+    """Create a full admin profile from the command line"""
+    
+    # Username
+    username = input('Enter admin username: ').strip()
     if User.query.filter_by(username=username).first():
-        print(f"Error: Username '{username}' already exists!")
+        print(f"❌ Username '{username}' already exists!")
         return
     
+    # Password
     password = input('Enter admin password: ')
+    if len(password) < 6:
+        print("❌ Password must be at least 6 characters")
+        return
+    
+    # Full Name
+    full_name = input('Enter full name: ').strip()
+    if len(full_name) < 3:
+        print("❌ Full name must be at least 3 characters")
+        return
+    
+    # Email
+    email = input('Enter email address: ').strip()
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, email):
+        print("❌ Invalid email format")
+        return
+    if User.query.filter_by(email=email).first():
+        print(f"❌ Email '{email}' is already registered")
+        return
+    
+    # Phone (optional)
+    phone = input('Enter phone number (optional): ').strip()
+    phone = phone if phone else None
+    
+    # Department (optional)
+    department = input('Enter department (default: Management): ').strip()
+    department = department if department else 'Management'
+    
+    # Create admin
     hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
-    new_admin = User(username=username, password=hashed_pw, role='admin')
+    new_admin = User(
+        username=username,
+        password=hashed_pw,
+        role='admin',
+        full_name=full_name,
+        email=email,
+        phone=phone,
+        department=department,
+        is_active=True
+    )
     db.session.add(new_admin)
     db.session.commit()
-    print('✅ Admin user created successfully!')
+    
+    print(f'✅ Admin "{full_name}" created successfully!')
+    print(f'   Username: {username}')
+    print(f'   Email: {email}')
+    print(f'   Department: {department}')
 
 # =====================================================
 # EXPORT INVENTORY TO CSV
