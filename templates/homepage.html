@@ -60,20 +60,38 @@
       Next-Gen Footwear Management
     </p>
     
+    <!-- display -->
     <div class="row justify-content-center mb-5">
       <div class="col-md-8">
         <div class="card glass-card p-4">
           <div class="row text-center">
+            <!-- Total Products -->
             <div class="col-md-4">
-              <h2 class="display-4 text-success" id="productCount" data-target="{{ total_products }}">0</h2>
+              <h2 class="display-4 text-success" id="productCount"
+                  data-target="{{ total_products if total_products is not none else 0 }}"
+                  data-raw="{{ total_products if total_products is not none else 0 }}">
+                {{ total_products if total_products is not none else 0 }}
+              </h2>
               <p class="text-muted">Total Products</p>
             </div>
+
+            <!-- Low Stock Alerts -->
             <div class="col-md-4">
-              <h2 class="display-4 text-warning" id="lowStockCount" data-target="{{ low_stock_count }}">0</h2>
+              <h2 class="display-4 text-warning" id="lowStockCount"
+                  data-target="{{ low_stock_count if low_stock_count is not none else 0 }}"
+                  data-raw="{{ low_stock_count if low_stock_count is not none else 0 }}">
+                {{ low_stock_count if low_stock_count is not none else 0 }}
+              </h2>
               <p class="text-muted">Low Stock Alerts</p>
             </div>
+
+            <!-- Active Users -->
             <div class="col-md-4">
-              <h2 class="display-4 text-info" id="activeUsers" data-target="{{ active_users }}">0</h2>
+              <h2 class="display-4 text-info" id="activeUsers"
+                  data-target="{{ active_users if active_users is not none else 0 }}"
+                  data-raw="{{ active_users if active_users is not none else 0 }}">
+                {{ active_users if active_users is not none else 0 }}
+              </h2>
               <p class="text-muted">Active Users</p>
             </div>
           </div>

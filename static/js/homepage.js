@@ -1,7 +1,11 @@
-// Particle animation
+// static/js/homepage.js - PRODUCTION VERSION
+console.log('🚀 Homepage JS Loading...');
+
 function createParticles() {
   const container = document.getElementById('particleContainer');
   if (!container) return;
+  
+  container.innerHTML = ''; // Prevent duplicates
   
   for (let i = 0; i < 15; i++) {
     const particle = document.createElement('div');
@@ -16,15 +20,21 @@ function createParticles() {
   }
 }
 
-// Animated counters
 function animateCounter(element, target) {
   if (!element) return;
+
+  const targetNum = parseInt(target);
+  if (isNaN(targetNum) || targetNum <= 0) {
+    element.textContent = element.dataset.raw || '0';
+    return;
+  }
+
   let current = 0;
-  const increment = target / 50;
+  const increment = targetNum / 50;
   const timer = setInterval(() => {
     current += increment;
-    if (current >= target) {
-      element.textContent = target;
+    if (current >= targetNum) {
+      element.textContent = targetNum;
       clearInterval(timer);
     } else {
       element.textContent = Math.floor(current);
@@ -32,46 +42,46 @@ function animateCounter(element, target) {
   }, 30);
 }
 
-// Intersection Observer for scroll animations
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.style.opacity = '1';
-      entry.target.style.transform = 'translateY(0)';
-    }
-  });
-});
-
-// Initialize on load
+// Initialize on DOM ready
 document.addEventListener('DOMContentLoaded', function() {
   createParticles();
   
-  // Animate counters when stats section is visible
-  const statsSection = document.querySelector('.glass-card');
-  if (statsSection) {
-    observer.observe(statsSection);
-    setTimeout(() => {
-      // Read target values from data attributes
-      const productCountEl = document.getElementById('productCount');
-      const lowStockCountEl = document.getElementById('lowStockCount');
-      const activeUsersEl = document.getElementById('activeUsers');
-      
-      if (productCountEl) animateCounter(productCountEl, parseInt(productCountEl.dataset.target));
-      if (lowStockCountEl) animateCounter(lowStockCountEl, parseInt(lowStockCountEl.dataset.target));
-      if (activeUsersEl) animateCounter(activeUsersEl, parseInt(activeUsersEl.dataset.target));
-    }, 500);
-  }
+  // Animate counters after brief delay
+  setTimeout(() => {
+    const productEl = document.getElementById('productCount');
+    const lowStockEl = document.getElementById('lowStockCount');
+    const activeUsersEl = document.getElementById('activeUsers');
+    
+    if (productEl) {
+      const target = parseInt(productEl.dataset.target) || 0;
+      if (target > 0) animateCounter(productEl, target);
+    }
+    
+    if (lowStockEl) {
+      const target = parseInt(lowStockEl.dataset.target) || 0;
+      if (target > 0) animateCounter(lowStockEl, target);
+    }
+    
+    if (activeUsersEl) {
+      const target = parseInt(activeUsersEl.dataset.target) || 0;
+      if (target > 0) animateCounter(activeUsersEl, target);
+    }
+  }, 400); // Shorter delay for snappier feel
   
-  // Feature cards scroll animation
+  // Feature cards animation
   document.querySelectorAll('.feature-card').forEach((card, index) => {
     card.style.opacity = '0';
     card.style.transform = 'translateY(50px)';
     card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
     card.style.transitionDelay = index * 0.1 + 's';
-    observer.observe(card);
+    
+    setTimeout(() => {
+      card.style.opacity = '1';
+      card.style.transform = 'translateY(0)';
+    }, 600 + index * 100);
   });
   
-  // Product slide hover effect
+  // Product hover effects
   document.querySelectorAll('.product-slide').forEach(slide => {
     slide.addEventListener('mouseenter', function() {
       this.style.transform = 'scale(1.05) rotateY(5deg)';

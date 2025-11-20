@@ -1063,6 +1063,24 @@ def product_history(product_id):
     
     return render_template('product_history.html', product=product, histories=histories)
 
+@app.route('/debug')
+def debug_homepage():
+    # Raw database checks
+    total = Product.query.count()
+    low_stock = Product.query.filter(Product.stock < 5).count()
+    active = User.query.filter(User.is_active == True).count()
+    
+    # Print to console
+    print(f"DEBUG: total_products={total}, low_stock={low_stock}, active_users={active}")
+    
+    # Return raw values (bypass template)
+    return {
+        "total_products": total,
+        "low_stock_count": low_stock,
+        "active_users": active,
+        "db_url": app.config['SQLALCHEMY_DATABASE_URI']
+    }
+
 # =====================================================
 # RUN APPLICATION
 # =====================================================
