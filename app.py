@@ -5,6 +5,7 @@ import os
 import filetype
 import csv
 import re
+import secrets
 from io import StringIO
 from datetime import datetime, timezone, timedelta  
 from functools import wraps
@@ -120,6 +121,7 @@ class User(db.Model):
     phone = db.Column(db.String(20), nullable=True)
     department = db.Column(db.String(50), default='General')
     is_active = db.Column(db.Boolean, default=True)
+    is_approved = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
 class Product(db.Model):
@@ -183,6 +185,38 @@ class ProductChangeLog(db.Model):
     username = db.Column(db.String(50))
     timestamp = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
 
+class Invitation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    email = db.Column(db.String(100), nullable=False, index=True)
+    role = db.Column(db.String(10), default='staff')
+    department = db.Column(db.String(50), default='General')
+    created_by = db.Column(db.Integer, db.ForeignKey('user.id'))
+    created_at = db.Column(db.DateTime, default=lambda: datetime.utcnow())
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationship for creator info
+    creator = db.relationship('User', backref='invitations_created')
+    
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Generate secure token if not provided
+        if not self.token:
+            self.token = secrets.token_urlsafe(32)
+        # Set 24-hour expiry from creation time if not provided
+        if not self.expires_at:
+            self.expires_at = datetime.utcnow() + timedelta(hours=24)
+    
+    @property
+    def is_expired(self):
+        """Check if invitation is expired"""
+        return datetime.utcnow() > self.expires_at
+    
+    def __repr__(self):
+        return f"<Invitation {self.email} - {'Used' if self.used else 'Active'}>"
+
 # =====================================================
 # TEMPLATE FILTERS
 # =====================================================
@@ -204,6 +238,22 @@ def manila_time_filter(utc_datetime):
     
     return local_time.strftime("%Y-%m-%d %H:%M:%S")
 
+
+@app.template_filter('is_expired')
+def is_expired_filter(dt):
+    """Check if datetime is expired (handles both naive & aware datetimes)"""
+    if dt is None:
+        return False
+    
+    # Get current time as naive UTC (matching MySQL storage)
+    now = datetime.utcnow()
+    
+    # If datetime is aware, convert to naive for comparison
+    if dt.tzinfo is not None:
+        dt = dt.replace(tzinfo=None)
+    
+    return now > dt
+
 # =====================================================
 # AUTHENTICATION ROUTES
 # =====================================================
@@ -217,6 +267,10 @@ def login():
 
         if user and bcrypt.check_password_hash(user.password, password):
             
+            if not user.is_approved:
+                flash("❌ Your account is pending admin approval. Please contact an administrator.", "warning")
+                return render_template('login.html')
+
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
@@ -918,7 +972,7 @@ def search_users():
 @app.route('/activity_logs')
 @admin_only
 def activity_logs():
-    # Eager load the changes relationship to avoid N+1 queries
+    
     logs = ActivityLog.query.options(
         db.joinedload(ActivityLog.changes)
     ).order_by(ActivityLog.timestamp.desc()).all()
@@ -927,12 +981,27 @@ def activity_logs():
 
 @app.context_processor
 def inject_admin_alerts():
-    """Make low stock count available in all templates"""
+    """Make low stock count and active users available in templates"""
     low_stock_products = Product.query.filter(Product.stock < 5).all()
+    
+    # Only count approved active users
+    active_users = User.query.filter(
+        User.is_active == True, 
+        User.is_approved == True
+    ).count()
+    
     return {
         'low_stock_products': low_stock_products,
-        'low_stock_count': len(low_stock_products)
+        'low_stock_count': len(low_stock_products),
+        'active_users': active_users
     }
+
+@app.context_processor
+def inject_invitation_count():
+    """Make pending invitation count available"""
+    def get_count():
+        return Invitation.query.filter_by(used=False).count()
+    return {'pending_invitations_count': get_count}
 
 # =====================================================
 # HOMEPAGE ROUTE
@@ -1082,11 +1151,226 @@ def debug_homepage():
     }
 
 # =====================================================
+# INVITATION MANAGEMENT ROUTES
+# =====================================================
+
+@app.route('/create_invitation', methods=['GET', 'POST'])
+@admin_only
+def create_invitation():
+    """
+    Generate a secure, time-limited invitation link for staff registration.
+    Uses naive UTC datetimes for MySQL compatibility.
+    """
+    if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
+        department = request.form.get('department', 'General')
+        
+       
+        errors = []
+        
+        # Email format validation
+        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+        if not email:
+            errors.append("Email address is required.")
+        elif not re.match(email_pattern, email):
+            errors.append("Invalid email format.")
+        
+        # for existing invitation 
+        existing = Invitation.query.filter(
+            Invitation.email == email,
+            Invitation.used == False,
+            Invitation.expires_at > datetime.utcnow()
+        ).first()
+        
+        if existing:
+            errors.append(f"Active invitation already exists for {email}")
+        
+        # if user already exists
+        if User.query.filter_by(email=email).first():
+            errors.append(f"User with email {email} already exists")
+        
+        if errors:
+            for error in errors:
+                flash(f"❌ {error}", "danger")
+            return render_template('create_invitation.html', 
+                                   email=email, 
+                                   department=department)
+        
+        try:
+            #  CREATE INVITATION
+            invitation = Invitation(
+                email=email,
+                department=department,
+                created_by=session['user_id']
+            )
+            db.session.add(invitation)
+            db.session.flush()  
+            
+            # Generate URL 
+            registration_url = url_for('register_with_invite', 
+                                       token=invitation.token, 
+                                       _external=True)
+            
+            # Log activity
+            log = ActivityLog(
+                user_id=session['user_id'],
+                username=session['username'],
+                action=f"Admin created invitation for {email}",
+                product_name=f"{department} Department"
+            )
+            db.session.add(log)
+            db.session.commit()
+            
+            # Store in session
+            session['invite_link'] = registration_url
+            session['invite_email'] = email
+            
+            flash(f"✅ Invitation created successfully!", "success")
+            return redirect(url_for('view_invitations'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f"❌ Error creating invitation: {str(e)}", "danger")
+            return render_template('create_invitation.html')
+    
+    # GET request
+    return render_template('create_invitation.html')
+
+
+@app.route('/view_invitations')
+@admin_only
+def view_invitations():
+    """View all active (unused and not expired) invitations"""
+    active_invites = Invitation.query.filter(
+        Invitation.used == False,
+        Invitation.expires_at > datetime.utcnow()
+    ).order_by(Invitation.created_at.desc()).all()
+    
+    return render_template('view_invitations.html', invitations=active_invites)
+
+
+@app.route('/cancel_invitation/<int:invite_id>')
+@admin_only
+def cancel_invitation(invite_id):
+    """Cancel an unused invitation"""
+    invite = Invitation.query.get_or_404(invite_id)
+    
+    if invite.used:
+        flash("❌ Cannot cancel used invitation", "warning")
+    else:
+        db.session.delete(invite)
+        db.session.commit()
+        flash(f"✅ Invitation for {invite.email} cancelled", "success")
+    
+    return redirect(url_for('view_invitations'))
+
+# =====================================================
+# INVITATION-BASED REGISTRATION
+# =====================================================
+
+@app.route('/register/<token>', methods=['GET', 'POST'])
+def register_with_invite(token):
+    """
+    Register using invitation token. Validates expiry with robust datetime handling.
+    """
+    # invitation
+    invitation = Invitation.query.filter_by(token=token).first()
+    
+    # Check if invitation exists and is unused
+    if not invitation or invitation.used:
+        flash("❌ Invalid or already used invitation link", "danger")
+        return redirect(url_for('login'))
+    
+    # Check expiry
+    now = datetime.utcnow() 
+    expires_at = invitation.expires_at
+    
+   
+    if expires_at.tzinfo is not None:
+        expires_at = expires_at.replace(tzinfo=None)
+    
+    if now > expires_at:
+        flash("❌ This invitation has expired", "danger")
+        return redirect(url_for('login'))
+    
+    
+    if request.method == 'GET':
+        return render_template('register_with_invite.html', 
+                               token=token, 
+                               email=invitation.email)
+    
+    
+    username = request.form['username'].strip()
+    password = request.form['password']
+    full_name = request.form['full_name'].strip()
+    phone = request.form['phone'].strip()
+    
+    # ✅ VALIDATION
+    errors = []
+    if len(username) < 3:
+        errors.append("Username must be at least 3 characters.")
+    if len(password) < 6:
+        errors.append("Password must be at least 6 characters.")
+    if not full_name or len(full_name) < 3:
+        errors.append("Full name required.")
+    if User.query.filter_by(username=username).first():
+        errors.append(f"Username '{username}' already exists!")
+    
+    if errors:
+        for error in errors:
+            flash(f"❌ {error}", "danger")
+        return render_template('register_with_invite.html', 
+                               token=token, 
+                               email=invitation.email,
+                               username=username,
+                               full_name=full_name)
+    
+    try:
+        #  CREATE APPROVED USER
+        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
+        new_user = User(
+            username=username,
+            password=hashed_pw,
+            role=invitation.role,
+            full_name=full_name,
+            email=invitation.email,
+            phone=phone,
+            department=invitation.department,
+            is_active=True,
+            is_approved=True
+        )
+        db.session.add(new_user)
+        
+        
+        invitation.used = True
+        invitation.used_at = datetime.utcnow()
+        
+        
+        log = ActivityLog(
+            user_id=None,
+            username="System",
+            action=f"Staff registered via invitation",
+            product_name=f"{full_name} ({invitation.email})"
+        )
+        db.session.add(log)
+        db.session.commit()
+        
+        flash(f"✅ Registration successful! Welcome {full_name}. You can now log in.", "success")
+        return redirect(url_for('login'))
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f"❌ Registration failed: {str(e)}", "danger")
+        return render_template('register_with_invite.html', 
+                               token=token, 
+                               email=invitation.email)
+
+# =====================================================
 # RUN APPLICATION
 # =====================================================
 
 if __name__ == '__main__':
-    # Create tables if they don't exist 
+    # Create tables 
     with app.app_context():
         db.create_all()
     

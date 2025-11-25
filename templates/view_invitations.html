@@ -1,0 +1,112 @@
+{% extends "layout/base.html" %}
+{% block title %}Active Invitations{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h2 class="mb-4">📨 Active Invitations</h2>
+  
+  <div class="mb-3">
+    <a href="{{ url_for('create_invitation') }}" class="btn btn-success">
+      <i class="fas fa-plus"></i> Create New Invitation
+    </a>
+  </div>
+
+  {% if invitations %}
+    <div class="card shadow">
+      <div class="table-responsive">
+        <table class="table table-hover align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Email</th>
+              <th>Department</th>
+              <th>Created</th>
+              <th>Expires</th>
+              <th>Created By</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for invite in invitations %}
+              {% set is_expired = invite.expires_at|is_expired %}
+              <tr class="{{ 'table-warning' if is_expired else '' }}">
+                <td><strong>{{ invite.email }}</strong></td>
+                <td><span class="badge bg-info">{{ invite.department }}</span></td>
+                <td><small>{{ invite.created_at|manila_time }}</small></td>
+                <td>
+                  <small class="{{ 'text-danger' if is_expired else '' }}">
+                    {{ invite.expires_at|manila_time }}
+                    {% if is_expired %}<br><span class="badge bg-danger">EXPIRED</span>{% endif %}
+                  </small>
+                </td>
+                <td>{{ invite.creator.username if invite.creator else 'System' }}</td>
+                <td>
+                  {% if not invite.used and not is_expired %}
+                    
+                    <button class="btn btn-sm btn-outline-primary copy-btn" 
+                            data-link="{{ url_for('register_with_invite', token=invite.token, _external=True) }}">
+                      <i class="fas fa-copy"></i> Copy
+                    </button>
+                  {% endif %}
+                  <a href="{{ url_for('cancel_invitation', invite_id=invite.id) }}" 
+                     class="btn btn-sm btn-danger ms-1"
+                     onclick="return confirm('Cancel invitation for {{ invite.email }}?');">
+                    <i class="fas fa-times"></i>
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  {% else %}
+    <div class="alert alert-info">
+      <i class="fas fa-info-circle"></i> No active invitations. Create one above!
+    </div>
+  {% endif %}
+
+  <div class="text-center mt-3">
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary">
+      ← Back to Dashboard
+    </a>
+  </div>
+</div>
+
+<script>
+
+  document.addEventListener('DOMContentLoaded', function() {
+  document.querySelectorAll('.copy-btn').forEach(button => {
+    button.addEventListener('click', function() {
+      copyToClipboard(this.getAttribute('data-link'), this);
+    });
+  });
+});
+
+function copyToClipboard(text, button) {
+ 
+  const textarea = document.createElement('textarea');
+  textarea.value = text;
+  textarea.style.position = 'fixed';
+  textarea.style.opacity = '0';
+  document.body.appendChild(textarea);
+  
+
+  textarea.select();
+  document.execCommand('copy');
+  document.body.removeChild(textarea);
+  
+
+  const originalHTML = button.innerHTML;
+  button.innerHTML = '<i class="fas fa-check"></i> Copied!';
+  button.classList.remove('btn-outline-primary');
+  button.classList.add('btn-success');
+  
+ 
+  setTimeout(() => {
+    button.innerHTML = originalHTML;
+    button.classList.remove('btn-success');
+    button.classList.add('btn-outline-primary');
+  }, 2000);
+}
+</script>
+{% endblock %}

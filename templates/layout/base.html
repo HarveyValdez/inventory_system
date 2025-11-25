@@ -72,6 +72,17 @@
                   {% endif %}
                 </a>
               </li>
+              {% if session.get('role') == 'admin' %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('view_invitations') }}">
+                    Invitations
+                    {% set pending_invites = pending_invitations_count() %}
+                    {% if pending_invites > 0 %}
+                      <span class="nav-badge">{{ pending_invites }}</span>
+                    {% endif %}
+                  </a>
+                </li>
+              {% endif %}
               <li class="nav-item"><a class="nav-link" href="{{ url_for('register_staff') }}">Add Staff</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('manage_users') }}">Manage Users</a></li>
               <li class="nav-item"><a class="nav-link" href="{{ url_for('activity_logs') }}">Logs</a></li>

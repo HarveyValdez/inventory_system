@@ -1,0 +1,68 @@
+{% extends "layout/base.html" %}
+{% block title %}Create Invitation{% endblock %}
+
+{% block content %}
+<div class="mx-auto mt-5" style="max-width: 600px;">
+  <div class="card shadow p-4">
+    <h3 class="text-center mb-3">📧 Create Staff Invitation</h3>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% if session.get('invite_link') %}
+      <div class="alert alert-success">
+        <h5>✅ Invitation Link Created!</h5>
+        <p class="mb-2">Send this link to <strong>{{ session.pop('invite_email', '') }}</strong>:</p>
+        <div class="input-group mb-3">
+          <input type="text" class="form-control" value="{{ session.pop('invite_link', '') }}" readonly id="inviteLink">
+          <button class="btn btn-outline-secondary" type="button" onclick="copyInviteLink()">
+            <i class="fas fa-copy"></i> Copy
+          </button>
+        </div>
+        <small class="text-muted">⏰ Link expires in 24 hours</small>
+      </div>
+    {% endif %}
+
+    <form method="POST">
+      <div class="mb-3">
+        <label class="form-label">Staff Email Address *</label>
+        <input type="email" name="email" class="form-control" required 
+               placeholder="newstaff@company.com" value="{{ email if email else '' }}">
+        <small class="text-muted">Invitation will be sent to this email</small>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Department</label>
+        <select name="department" class="form-select">
+          <option value="Inventory" {% if department == 'Inventory' %}selected{% endif %}>Inventory</option>
+          <option value="Sales" {% if department == 'Sales' %}selected{% endif %}>Sales</option>
+          <option value="Customer Service" {% if department == 'Customer Service' %}selected{% endif %}>Customer Service</option>
+          <option value="Management" {% if department == 'Management' %}selected{% endif %}>Management</option>
+          <option value="General" {% if department == 'General' %}selected{% endif %}>General</option>
+        </select>
+      </div>
+
+      <button type="submit" class="btn btn-primary w-100">Generate Invitation Link</button>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary w-100 mt-2">← Back to Dashboard</a>
+    </form>
+  </div>
+</div>
+
+<script>
+function copyInviteLink() {
+  const link = document.getElementById('inviteLink');
+  link.select();
+  document.execCommand('copy');
+  
+  const btn = event.target.closest('button');
+  const originalText = btn.innerHTML;
+  btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+  setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+}
+</script>
+{% endblock %}
