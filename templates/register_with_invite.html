@@ -1,0 +1,57 @@
+{% extends "layout/base.html" %}
+{% block title %}Complete Registration{% endblock %}
+
+{% block content %}
+<div class="mx-auto mt-5" style="max-width: 600px;">
+  <div class="card shadow p-4">
+    <h3 class="text-center mb-3">🎉 Complete Your Registration</h3>
+    
+    <div class="alert alert-info">
+      <i class="fas fa-envelope-open"></i> 
+      <strong>Invitation for:</strong> {{ email }}
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+      <div class="row mb-3">
+        <div class="col-md-6">
+          <label class="form-label">Username *</label>
+          <input type="text" name="username" class="form-control" required 
+                 minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+">
+        </div>
+        <div class="col-md-6">
+          <label class="form-label">Password *</label>
+          <input type="password" name="password" class="form-control" required 
+                 minlength="6">
+        </div>
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Full Name *</label>
+        <input type="text" name="full_name" class="form-control" required 
+               minlength="3" maxlength="100">
+      </div>
+
+      <div class="mb-3">
+        <label class="form-label">Phone (Optional)</label>
+        <input type="tel" name="phone" class="form-control" 
+               placeholder="0917-123-4567">
+      </div>
+
+      <button type="submit" class="btn btn-success w-100">Complete Registration</button>
+      <p class="text-center mt-3 mb-0">
+        <small class="text-muted">
+          By registering, you agree to the system terms.
+        </small>
+      </p>
+    </form>
+  </div>
+</div>
+{% endblock %}
