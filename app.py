@@ -582,21 +582,26 @@ def index():
     if 'username' not in session:
         return redirect(url_for('login'))
 
+    # Get query parameters
     search_query = request.args.get('query', '').strip()
-    sort_by = request.args.get('sort', 'id')  # Default sort by ID
-    order = request.args.get('order', 'asc')  # Default order ascending
+    sort_by = request.args.get('sort', 'id')
+    order = request.args.get('order', 'asc')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int) 
 
-    
-    allowed_columns = ['id', 'name', 'brand', 'category', 'size', 'stock', 'price', 'date_added']
+    # Validate parameters
+    allowed_columns = ['id', 'name', 'brand', 'category', 'size', 'stock', 'price', 'created_at']
     if sort_by not in allowed_columns:
         sort_by = 'id'
     if order not in ['asc', 'desc']:
         order = 'asc'
+    if per_page not in [10, 20, 50, 100]:  
+        per_page = 20
 
     # Build base query
     query = Product.query
 
-    # Apply search 
+    # Apply search filter
     if search_query:
         query = query.filter(
             db.or_(
@@ -615,13 +620,17 @@ def index():
     else:
         query = query.order_by(sort_column.asc())
 
-    products = query.all()
+    # Apply pagination
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    products = pagination.items
 
     return render_template('index.html', 
                          products=products, 
+                         pagination=pagination,
                          search_query=search_query,
                          sort_by=sort_by,
-                         order=order)
+                         order=order,
+                         per_page=per_page)
 
 
 # =====================================================
@@ -1094,23 +1103,166 @@ def create_admin():
 # =====================================================
 @app.route('/export_csv')
 def export_csv():
-    products = Product.query.all()
+    """Export CSV with customizable columns and advanced filters including Brand"""
+    if 'username' not in session or session.get('role') not in ['admin', 'staff']:
+        flash("Access denied.", "danger")
+        return redirect(url_for('login'))
     
-    # Create CSV in memory
+    # Get column selection
+    columns = request.args.getlist('columns')
+    include_headers = request.args.get('include_headers') == 'true'
+    
+    # Get filters
+    brand_filter = request.args.get('brand_filter', '').strip()
+    category_filter = request.args.get('category_filter', '').strip()
+    size_min = request.args.get('size_min', '').strip()
+    size_max = request.args.get('size_max', '').strip()
+    stock_min = request.args.get('stock_min', type=int)
+    stock_max = request.args.get('stock_max', type=int)
+    price_min = request.args.get('price_min', type=float)
+    price_max = request.args.get('price_max', type=float)
+    date_start = request.args.get('date_start', '').strip()
+    date_end = request.args.get('date_end', '').strip()
+    
+    # Validate columns
+    if not columns:
+        flash("❌ Please select at least one column to export.", "warning")
+        return redirect(url_for('index'))
+    
+    # Map column names to headers
+    column_headers = {
+        'name': 'Product Name',
+        'brand': 'Brand',
+        'category': 'Category',
+        'size': 'Size',
+        'stock': 'Stock',
+        'price': 'Price (₱)',
+        'created_at': 'Created Date'
+    }
+    
+    # Build base query
+    query = Product.query
+    
+    # Apply filters dynamically
+    filters_applied = []
+    
+    # ✅ NEW: Brand filter
+    if brand_filter:
+        query = query.filter(Product.brand.ilike(f"%{brand_filter}%"))
+        filters_applied.append(f"Brand: {brand_filter}")
+    
+    if category_filter:
+        query = query.filter(Product.category == category_filter)
+        filters_applied.append(f"Category: {category_filter}")
+    
+    if size_min or size_max:
+        if size_min and size_max:
+            query = query.filter(Product.size.between(size_min, size_max))
+            filters_applied.append(f"Size: {size_min} - {size_max}")
+        elif size_min:
+            query = query.filter(Product.size >= size_min)
+            filters_applied.append(f"Size ≥ {size_min}")
+        elif size_max:
+            query = query.filter(Product.size <= size_max)
+            filters_applied.append(f"Size ≤ {size_max}")
+    
+    if stock_min is not None or stock_max is not None:
+        if stock_min is not None and stock_max is not None:
+            query = query.filter(Product.stock.between(stock_min, stock_max))
+            filters_applied.append(f"Stock: {stock_min} - {stock_max}")
+        elif stock_min is not None:
+            query = query.filter(Product.stock >= stock_min)
+            filters_applied.append(f"Stock ≥ {stock_min}")
+        elif stock_max is not None:
+            query = query.filter(Product.stock <= stock_max)
+            filters_applied.append(f"Stock ≤ {stock_max}")
+    
+    if price_min is not None or price_max is not None:
+        if price_min is not None and price_max is not None:
+            query = query.filter(Product.price.between(price_min, price_max))
+            filters_applied.append(f"Price: ₱{price_min:.2f} - ₱{price_max:.2f}")
+        elif price_min is not None:
+            query = query.filter(Product.price >= price_min)
+            filters_applied.append(f"Price ≥ ₱{price_min:.2f}")
+        elif price_max is not None:
+            query = query.filter(Product.price <= price_max)
+            filters_applied.append(f"Price ≤ ₱{price_max:.2f}")
+    
+    if date_start or date_end:
+        if date_start:
+            start_date = datetime.strptime(date_start, '%Y-%m-%d')
+            query = query.filter(Product.created_at >= start_date)
+        if date_end:
+            end_date = datetime.strptime(date_end, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Product.created_at < end_date)
+        filters_applied.append(f"Date: {date_start or 'Start'} to {date_end or 'End'}")
+    
+    # Apply search if present
+    search_query = request.args.get('query', '').strip()
+    if search_query:
+        query = query.filter(
+            db.or_(
+                Product.name.ilike(f"%{search_query}%"),
+                Product.brand.ilike(f"%{search_query}%"),
+                Product.category.ilike(f"%{search_query}%"),
+                Product.size.ilike(f"%{search_query}%")
+            )
+        )
+        filters_applied.append(f"Search: '{search_query}'")
+    
+    # Sort by name for consistent output
+    products = query.order_by(Product.name.asc()).all()
+    
+    if not products:
+        flash("⚠️ No products found matching your filters.", "warning")
+        return redirect(url_for('index'))
+    
+    # Create CSV
     output = StringIO()
     writer = csv.writer(output)
     
-    # Write header
-    writer.writerow(['ID', 'Name', 'Brand', 'Category', 'Size', 'Stock', 'Price'])
+    # Write filters comment
+    if filters_applied:
+        writer.writerow([f"Filters Applied: {' | '.join(filters_applied)}"])
     
-    # Write data
-    for p in products:
-        writer.writerow([p.id, p.name, p.brand, p.category, p.size, p.stock, p.price])
+    # Write headers
+    if include_headers:
+        headers = [column_headers.get(col, col) for col in columns]
+        writer.writerow(headers)
     
-    # Create response
+    # Write data rows
+    for product in products:
+        row = []
+        for col in columns:
+            if col == 'name':
+                row.append(product.name or 'N/A')
+            elif col == 'brand':
+                row.append(product.brand or 'N/A')
+            elif col == 'category':
+                row.append(product.category or 'N/A')
+            elif col == 'size':
+                size_str = f"{product.size} {product.size_unit}" if product.size and product.size_unit else product.size or 'N/A'
+                row.append(size_str)
+            elif col == 'stock':
+                row.append(str(product.stock or 0))
+            elif col == 'price':
+                row.append(f"{product.price:.2f}" if product.price else '0.00')
+            elif col == 'created_at':
+                row.append(product.created_at.strftime("%Y-%m-%d %H:%M:%S") if product.created_at else 'N/A')
+            else:
+                row.append('N/A')
+        writer.writerow(row)
+    
+    # Prepare response
     response = make_response(output.getvalue())
-    response.headers["Content-Disposition"] = "attachment; filename=inventory.csv"
-    response.headers["Content-type"] = "text/csv"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filter_text = "_filtered" if filters_applied else "_all"
+    filename = f"inventory{filter_text}_{timestamp}.csv"
+    
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
     return response
 
 # =====================================================
