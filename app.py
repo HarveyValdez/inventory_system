@@ -582,14 +582,14 @@ def index():
     if 'username' not in session:
         return redirect(url_for('login'))
 
-    # Get query parameters
+    # Get query parameters from URL
     search_query = request.args.get('query', '').strip()
     sort_by = request.args.get('sort', 'id')
     order = request.args.get('order', 'asc')
     page = request.args.get('page', 1, type=int)
-    per_page = request.args.get('per_page', 20, type=int) 
+    per_page = request.args.get('per_page', 20, type=int)
 
-    # Validate parameters
+    # Validate parameters for security
     allowed_columns = ['id', 'name', 'brand', 'category', 'size', 'stock', 'price', 'created_at']
     if sort_by not in allowed_columns:
         sort_by = 'id'
@@ -624,14 +624,21 @@ def index():
     pagination = query.paginate(page=page, per_page=per_page, error_out=False)
     products = pagination.items
 
+    #  DYNAMIC
+    unique_brands = db.session.query(Product.brand).filter(
+        Product.brand.isnot(None),
+        Product.brand != ''
+    ).distinct().order_by(Product.brand).all()
+    unique_brands = [brand[0] for brand in unique_brands if brand[0]]
+
     return render_template('index.html', 
                          products=products, 
                          pagination=pagination,
                          search_query=search_query,
                          sort_by=sort_by,
                          order=order,
-                         per_page=per_page)
-
+                         per_page=per_page,
+                         unique_brands=unique_brands)  
 
 # =====================================================
 # PRODUCT CRUD ROUTES
@@ -1146,7 +1153,7 @@ def export_csv():
     # Apply filters dynamically
     filters_applied = []
     
-    # ✅ NEW: Brand filter
+    #  NEW: Brand filter
     if brand_filter:
         query = query.filter(Product.brand.ilike(f"%{brand_filter}%"))
         filters_applied.append(f"Brand: {brand_filter}")
@@ -1197,7 +1204,7 @@ def export_csv():
             query = query.filter(Product.created_at < end_date)
         filters_applied.append(f"Date: {date_start or 'Start'} to {date_end or 'End'}")
     
-    # Apply search if present
+    # Apply search 
     search_query = request.args.get('query', '').strip()
     if search_query:
         query = query.filter(
@@ -1210,7 +1217,7 @@ def export_csv():
         )
         filters_applied.append(f"Search: '{search_query}'")
     
-    # Sort by name for consistent output
+    # Sort by name
     products = query.order_by(Product.name.asc()).all()
     
     if not products:
