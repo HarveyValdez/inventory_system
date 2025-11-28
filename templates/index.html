@@ -25,7 +25,7 @@
       <i class="fas fa-plus-circle"></i> Add New Footwear
     </a>
     
-    <!-- ✅ ADVANCED EXPORT BUTTON -->
+    <!--  ADVANCED EXPORT BUTTON -->
     <button type="button" class="btn btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#exportModal">
       <i class="fas fa-file-export"></i> Export CSV
     </button>
@@ -75,7 +75,7 @@
             </a>
           </th>
           
-          <!-- ✅ SEPARATED ACTION COLUMNS -->
+          <!--  SEPARATED ACTION COLUMNS -->
           {% if session['role'] in ['admin', 'staff'] %}
           <th class="text-center">Actions</th>
           <th class="text-center">Stock Control</th>
@@ -124,7 +124,7 @@
           <td><small>{{ product.created_at|manila_time if product.created_at else 'N/A' }}</small></td>
 
           {% if session['role'] in ['admin', 'staff'] %}
-          <!-- ✅ COLUMN 1: Action Buttons -->
+          <!--  COLUMN 1: Action Buttons -->
           <td class="text-center">
             <div class="action-buttons-column">
               <a href="{{ url_for('product_history', product_id=product.id) }}" 
@@ -150,7 +150,7 @@
             </div>
           </td>
 
-          <!-- ✅ COLUMN 2: Stock Controls -->
+          <!--  COLUMN 2: Stock Controls -->
           <td class="text-center">
             <div class="stock-controls-column">
               <!-- Add Stock -->
@@ -193,7 +193,7 @@
       </tbody>
     </table>
 
-    <!-- 📄 PAGINATION SECTION -->
+    <!--  PAGINATION SECTION -->
     <div class="pagination-container mt-4">
       <div class="row align-items-center">
         <div class="col-md-4">
@@ -271,7 +271,7 @@
   </div>
 </div>
 
-<!-- ✅ ADVANCED EXPORT CSV MODAL -->
+<!--   EXPORT CSV MODAL -->
 <div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content glass-card">
@@ -284,11 +284,11 @@
       <form id="exportForm" method="GET" action="{{ url_for('export_csv') }}" onsubmit="return validateExport()">
         <div class="modal-body">
           
-          <!-- 🔍 FILTER SECTION -->
+          <!--  FILTER SECTION -->
           <h6 class="text-success mb-3"><i class="fas fa-filter"></i> Apply Filters (Optional)</h6>
           
           <div class="row g-3 mb-4">
-            <!-- ✅ NEW: Brand Filter -->
+            <!-- NEW: Brand Filter -->
             <div class="col-md-6">
               <label class="form-label">Brand</label>
               <input type="text" name="brand_filter" class="form-control form-control-sm" 
@@ -361,7 +361,7 @@
           
           <hr>
           
-          <!-- 📊 COLUMN SELECTION -->
+          <!--  COLUMN SELECTION -->
           <h6 class="text-primary mb-3"><i class="fas fa-columns"></i> Select Columns</h6>
           <div class="row g-3">
             <div class="col-md-12">
@@ -446,7 +446,7 @@
 </div>
 
 <script>
-// ✅ Advanced Export Validation
+//   Export Validation
 function validateExport() {
   const checkedBoxes = document.querySelectorAll('.column-check:checked');
   const categoryFilter = document.querySelector('select[name="category_filter"]').value;
@@ -471,7 +471,7 @@ function validateExport() {
   return confirm(`📄 Export ${columnCount} columns${filterCount}?\n\nClick OK to download.`);
 }
 
-// ✅ Select All Toggle
+//  Select All Toggle
 function toggleAllColumns() {
   const checkAll = document.getElementById('checkAll');
   const columnChecks = document.querySelectorAll('.column-check');
@@ -481,7 +481,7 @@ function toggleAllColumns() {
   });
 }
 
-// ✅ Initialize column checkbox listeners
+//  Initialize column checkbox
 document.addEventListener('DOMContentLoaded', function() {
   const columnChecks = document.querySelectorAll('.column-check');
   const checkAll = document.getElementById('checkAll');
