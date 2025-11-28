@@ -116,13 +116,38 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(10), nullable=False)
-    full_name = db.Column(db.String(100), nullable=False)
+    
+    # Enhanced name fields
+    first_name = db.Column(db.String(50), nullable=False)
+    middle_name = db.Column(db.String(50), nullable=True)
+    last_name = db.Column(db.String(50), nullable=False)
+    
     email = db.Column(db.String(100), unique=True, nullable=False)
-    phone = db.Column(db.String(20), nullable=True)
+    phone = db.Column(db.String(20), nullable=False)  # Made required
+    
+    # Address fields
+    address = db.Column(db.Text, nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    
+    # Personal details
+    birthdate = db.Column(db.Date, nullable=True)
+    gender = db.Column(db.String(20), nullable=True)
+    education_level = db.Column(db.String(50), nullable=True)
+    
     department = db.Column(db.String(50), default='General')
     is_active = db.Column(db.Boolean, default=True)
     is_approved = db.Column(db.Boolean, default=False)
+    terms_accepted = db.Column(db.Boolean, nullable=False, default=False)
+    
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
+
+    @property
+    def full_name(self):
+        """Dynamically generate full name"""
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name}"
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -216,6 +241,20 @@ class Invitation(db.Model):
     
     def __repr__(self):
         return f"<Invitation {self.email} - {'Used' if self.used else 'Active'}>"
+    
+class UserReport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    report_type = db.Column(db.String(50), nullable=False)  # 'bug', 'feature', 'help', 'other'
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default='unread')  # unread, read, resolved
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
+    
+    # Relationship
+    user = db.relationship('User', backref='reports', lazy=True)
+    
+    def __repr__(self):
+        return f"<UserReport {self.id} - {self.user.username}: {self.report_type}>"
 
 # =====================================================
 # TEMPLATE FILTERS
@@ -1019,6 +1058,19 @@ def inject_invitation_count():
         return Invitation.query.filter_by(used=False).count()
     return {'pending_invitations_count': get_count}
 
+
+@app.context_processor
+def inject_report_alerts():
+    """Make unread report count available in all templates"""
+    def get_unread_report_count():
+        return UserReport.query.filter_by(status='unread').count()
+    
+    # Also inject the model class itself if needed for queries
+    return {
+        'UserReport': UserReport,  # This makes UserReport available in templates
+        'unread_reports_count': get_unread_report_count  # Helper function
+    }
+
 # =====================================================
 # HOMEPAGE ROUTE
 # =====================================================
@@ -1426,16 +1478,13 @@ def cancel_invitation(invite_id):
 # =====================================================
 # INVITATION-BASED REGISTRATION
 # =====================================================
-
 @app.route('/register/<token>', methods=['GET', 'POST'])
 def register_with_invite(token):
     """
-    Register using invitation token. Validates expiry with robust datetime handling.
+    Enhanced registration with comprehensive user details
     """
-    # invitation
     invitation = Invitation.query.filter_by(token=token).first()
     
-    # Check if invitation exists and is unused
     if not invitation or invitation.used:
         flash("❌ Invalid or already used invitation link", "danger")
         return redirect(url_for('login'))
@@ -1443,8 +1492,6 @@ def register_with_invite(token):
     # Check expiry
     now = datetime.utcnow() 
     expires_at = invitation.expires_at
-    
-   
     if expires_at.tzinfo is not None:
         expires_at = expires_at.replace(tzinfo=None)
     
@@ -1452,69 +1499,113 @@ def register_with_invite(token):
         flash("❌ This invitation has expired", "danger")
         return redirect(url_for('login'))
     
-    
     if request.method == 'GET':
         return render_template('register_with_invite.html', 
                                token=token, 
-                               email=invitation.email)
+                               email=invitation.email,
+                               department=invitation.department)
     
-    
-    username = request.form['username'].strip()
-    password = request.form['password']
-    full_name = request.form['full_name'].strip()
-    phone = request.form['phone'].strip()
-    
-    # ✅ VALIDATION
+    # ==== SERVER-SIDE VALIDATION ====
     errors = []
+    
+    # Required fields
+    required_fields = ['username', 'password', 'confirm_password', 
+                       'first_name', 'last_name', 'phone', 'birthdate']
+    
+    for field in required_fields:
+        if not request.form.get(field):
+            errors.append(f"{field.replace('_', ' ').title()} is required.")
+    
+    # Username validation
+    username = request.form['username'].strip()
     if len(username) < 3:
         errors.append("Username must be at least 3 characters.")
+    if User.query.filter_by(username=username).first():
+        errors.append(f"Username '{username}' already exists.")
+    
+    # Password validation
+    password = request.form['password']
+    confirm_password = request.form['confirm_password']
     if len(password) < 6:
         errors.append("Password must be at least 6 characters.")
-    if not full_name or len(full_name) < 3:
-        errors.append("Full name required.")
-    if User.query.filter_by(username=username).first():
-        errors.append(f"Username '{username}' already exists!")
+    if password != confirm_password:
+        errors.append("Passwords do not match.")
     
+    # Name validation
+    if len(request.form['first_name']) < 2:
+        errors.append("First name must be at least 2 characters.")
+    if len(request.form['last_name']) < 2:
+        errors.append("Last name must be at least 2 characters.")
+    
+    # Date validation (18+ check)
+    try:
+        birthdate = datetime.strptime(request.form['birthdate'], '%Y-%m-%d').date()
+        today = datetime.now().date()
+        age = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
+        if age < 18:
+            errors.append("You must be at least 18 years old to register.")
+    except ValueError:
+        errors.append("Invalid birthdate format.")
+    
+    # Contact number validation
+    phone = request.form['phone'].strip()
+    if not re.match(r'^[\d\-\+\(\)\s]+$', phone):
+        errors.append("Invalid phone number format.")
+    
+    # Terms acceptance
+    if not request.form.get('terms_accepted'):
+        errors.append("You must accept the Terms and Conditions.")
+    
+    # Display errors
     if errors:
         for error in errors:
             flash(f"❌ {error}", "danger")
         return render_template('register_with_invite.html', 
                                token=token, 
                                email=invitation.email,
-                               username=username,
-                               full_name=full_name)
+                               department=invitation.department,
+                               form_data=request.form)
     
     try:
-        #  CREATE APPROVED USER
+        # Create user with enhanced details
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
         new_user = User(
             username=username,
             password=hashed_pw,
             role=invitation.role,
-            full_name=full_name,
+            first_name=request.form['first_name'].strip(),
+            middle_name=request.form.get('middle_name', '').strip() or None,
+            last_name=request.form['last_name'].strip(),
             email=invitation.email,
             phone=phone,
             department=invitation.department,
+            birthdate=birthdate,
+            address=request.form.get('address', '').strip() or None,
+            city=request.form.get('city', '').strip() or None,
+            country=request.form.get('country', '').strip() or None,
+            gender=request.form.get('gender') or None,
+            education_level=request.form.get('education_level') or None,
             is_active=True,
-            is_approved=True
+            is_approved=True,
+            terms_accepted=True
         )
         db.session.add(new_user)
         
-        
+        # Mark invitation as used
         invitation.used = True
         invitation.used_at = datetime.utcnow()
         
-        
+        # Log activity
         log = ActivityLog(
             user_id=None,
             username="System",
             action=f"Staff registered via invitation",
-            product_name=f"{full_name} ({invitation.email})"
+            product_name=f"{new_user.full_name} ({invitation.email})"
         )
         db.session.add(log)
         db.session.commit()
         
-        flash(f"✅ Registration successful! Welcome {full_name}. You can now log in.", "success")
+        flash(f"✅ Registration successful! Welcome {new_user.full_name}. You can now log in.", "success")
         return redirect(url_for('login'))
         
     except Exception as e:
@@ -1522,8 +1613,181 @@ def register_with_invite(token):
         flash(f"❌ Registration failed: {str(e)}", "danger")
         return render_template('register_with_invite.html', 
                                token=token, 
-                               email=invitation.email)
+                               email=invitation.email,
+                               department=invitation.department,
+                               form_data=request.form)
 
+# =====================================================
+# ACCOUNT MANAGEMENT ROUTES
+# =====================================================
+
+@app.route('/account')
+def account():
+    """Display user account details"""
+    if 'user_id' not in session:
+        flash("Please log in first.", "warning")
+        return redirect(url_for('login'))
+    
+    user = User.query.get_or_404(session['user_id'])
+    return render_template('account.html', user=user)
+
+
+@app.route('/delete_account/<int:id>', methods=['POST'])
+def delete_account(id):
+    """Allow user to delete their own account"""
+    if 'user_id' not in session or session['user_id'] != id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('login'))
+    
+    user = User.query.get_or_404(id)
+    
+    # Prevent admin self-deletion
+    if user.role == 'admin':
+        flash("Admin accounts cannot be self-deleted. Contact another admin.", "danger")
+        return redirect(url_for('account'))
+    
+    try:
+        # Log the deletion
+        log = ActivityLog(
+            user_id=session['user_id'],
+            username=session['username'],
+            action="User deleted their own account",
+            product_name=f"{user.full_name} ({user.email})"
+        )
+        db.session.add(log)
+        
+        # Delete user and associated data
+        # Note: Reports and activity logs are preserved for audit
+        UserReport.query.filter_by(user_id=user.id).delete()
+        
+        db.session.delete(user)
+        db.session.commit()
+        
+        session.clear()
+        return {"success": True, "message": "Account deleted successfully"}
+        
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
+
+
+# =====================================================
+# REPORTING SYSTEM ROUTES
+# =====================================================
+
+@app.route('/submit_report', methods=['POST'])
+def submit_report():
+    """Submit a user report/issue"""
+    if 'user_id' not in session:
+        return {"success": False, "message": "Not logged in"}, 401
+    
+    data = request.get_json()
+    
+    # Validate
+    if not data.get('message') or len(data['message'].strip()) < 10:
+        return {"success": False, "message": "Message must be at least 10 characters"}, 400
+    
+    if not data.get('report_type'):
+        return {"success": False, "message": "Please select an issue type"}, 400
+    
+    try:
+        report = UserReport(
+            user_id=session['user_id'],
+            report_type=data['report_type'],
+            message=data['message'].strip(),
+            status='unread'
+        )
+        db.session.add(report)
+        db.session.commit()
+        
+        # Optional: Send email to admin
+        # send_admin_notification(report)
+        
+        return {"success": True, "message": "Report submitted successfully"}
+        
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
+
+
+@app.route('/api/unread_reports')
+@admin_only
+def api_unread_reports():
+    """API endpoint for unread report count (polling)"""
+    count = UserReport.query.filter_by(status='unread').count()
+    return {"count": count}
+
+
+@app.route('/admin/reports')
+@admin_only
+def admin_reports():
+    """Admin page to view and manage user reports"""
+    reports = UserReport.query.order_by(UserReport.created_at.desc()).all()
+    return render_template('manage_reports.html', reports=reports)
+
+
+@app.route('/admin/report_action/<int:report_id>', methods=['POST'])
+@admin_only
+def report_action(report_id):
+    """Mark report as read/resolved"""
+    report = UserReport.query.get_or_404(report_id)
+    action = request.json.get('action')
+    
+    if action == 'mark_read':
+        report.status = 'read'
+    elif action == 'resolve':
+        report.status = 'resolved'
+    elif action == 'delete':
+        db.session.delete(report)
+    
+    db.session.commit()
+    return {"success": True}
+
+
+# =====================================================
+# API: Get Current User Details
+# =====================================================
+
+@app.context_processor
+def inject_user_details():
+    """Make current user available in all templates"""
+    if 'user_id' in session:
+        return {'current_user': User.query.get(session['user_id'])}
+    return {'current_user': None}
+
+# Add this AFTER your existing filters, around line 710
+
+@app.context_processor
+def inject_user_utils():
+    """Safe utility functions for templates (not filters)"""
+    
+    def get_last_login(user_id):
+        """Get formatted last login time for a user"""
+        last_login = LoginActivity.query.filter_by(
+            user_id=user_id, 
+            action='Login'
+        ).order_by(LoginActivity.timestamp.desc()).first()
+        
+        if not last_login or not last_login.timestamp:
+            return 'First time'
+        
+        # Use your existing manila_time filter
+        return manila_time_filter(last_login.timestamp)
+    
+    def format_date_value(value, format='%B %d, %Y'):
+        """Format a date value (not a filter)"""
+        if not value:
+            return 'N/A'
+        try:
+            return value.strftime(format)
+        except:
+            return str(value)
+    
+    # Return functions, not filters
+    return {
+        'get_last_login': get_last_login,
+        'format_date_value': format_date_value,
+    }
 # =====================================================
 # RUN APPLICATION
 # =====================================================

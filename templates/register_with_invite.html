@@ -2,13 +2,14 @@
 {% block title %}Complete Registration{% endblock %}
 
 {% block content %}
-<div class="mx-auto mt-5" style="max-width: 600px;">
+<div class="mx-auto mt-4" style="max-width: 800px;">
   <div class="card shadow p-4">
-    <h3 class="text-center mb-3">🎉 Complete Your Registration</h3>
+    <h3 class="text-center mb-4 gradient-text">🎉 Complete Your Registration</h3>
     
     <div class="alert alert-info">
       <i class="fas fa-envelope-open"></i> 
-      <strong>Invitation for:</strong> {{ email }}
+      <strong>Invitation for:</strong> {{ email }} | 
+      <strong>Department:</strong> <span class="badge bg-info">{{ department }}</span>
     </div>
 
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -19,39 +20,269 @@
       {% endif %}
     {% endwith %}
 
-    <form method="POST">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Username *</label>
-          <input type="text" name="username" class="form-control" required 
-                 minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+">
+    <form method="POST" id="registrationForm" onsubmit="return validateRegistrationForm()">
+      
+      <!-- Account Credentials -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-lock"></i> Account Credentials</h6>
         </div>
-        <div class="col-md-6">
-          <label class="form-label">Password *</label>
-          <input type="password" name="password" class="form-control" required 
-                 minlength="6">
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Username *</label>
+              <input type="text" name="username" class="form-control" required 
+                     minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+"
+                     placeholder="Create a unique username">
+              <small class="text-muted">Letters, numbers, and underscores only</small>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Contact Number *</label>
+              <input type="tel" name="phone" class="form-control" required 
+                     placeholder="0917-123-4567" pattern="[0-9+\-\(\)\s]+" maxlength="20">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Password *</label>
+              <input type="password" name="password" id="password" class="form-control" 
+                     required minlength="6" placeholder="Minimum 6 characters">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Confirm Password *</label>
+              <input type="password" name="confirm_password" id="confirm_password" class="form-control" 
+                     required minlength="6" placeholder="Re-enter password">
+              <div id="passwordMismatch" class="text-danger small" style="display:none;">
+                <i class="fas fa-times-circle"></i> Passwords do not match!
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Full Name *</label>
-        <input type="text" name="full_name" class="form-control" required 
-               minlength="3" maxlength="100">
+      <!-- Personal Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-user-circle"></i> Personal Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label class="form-label">First Name *</label>
+              <input type="text" name="first_name" class="form-control" required 
+                     maxlength="50" placeholder="John">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Middle Name</label>
+              <input type="text" name="middle_name" class="form-control" 
+                     maxlength="50" placeholder="Optional">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">Last Name *</label>
+              <input type="text" name="last_name" class="form-control" required 
+                     maxlength="50" placeholder="Doe">
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Date of Birth *</label>
+              <input type="date" name="birthdate" id="birthdate" class="form-control" required>
+              <small class="text-muted">You must be at least 18 years old</small>
+              <div id="ageValidation" class="text-danger small" style="display:none;">
+                <i class="fas fa-times-circle"></i> You must be at least 18 years old!
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Gender</label>
+              <select name="gender" class="form-select">
+                <option value="">Select Gender</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Non-Binary">Non-Binary</option>
+                <option value="Prefer not to say">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label class="form-label">Education Level</label>
+              <select name="education_level" class="form-select">
+                <option value="">Select Education</option>
+                <option value="High School">High School</option>
+                <option value="Associate Degree">Associate Degree</option>
+                <option value="Bachelor's Degree">Bachelor's Degree</option>
+                <option value="Master's Degree">Master's Degree</option>
+                <option value="Doctorate">Doctorate</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Phone (Optional)</label>
-        <input type="tel" name="phone" class="form-control" 
-               placeholder="0917-123-4567">
+      <!-- Address Information -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-map-marker-alt"></i> Address Information</h6>
+        </div>
+        <div class="card-body">
+          <div class="mb-3">
+            <label class="form-label">Address</label>
+            <textarea name="address" class="form-control" rows="2" 
+                      placeholder="House/Unit Number, Street, Barangay"></textarea>
+          </div>
+          <div class="row">
+            <div class="col-md-6">
+              <label class="form-label">City</label>
+              <input type="text" name="city" class="form-control" 
+                     maxlength="100" placeholder="City">
+            </div>
+            <div class="col-md-6">
+              <label class="form-label">Country</label>
+              <input type="text" name="country" class="form-control" 
+                     maxlength="100" placeholder="Philippines">
+            </div>
+          </div>
+        </div>
       </div>
 
-      <button type="submit" class="btn btn-success w-100">Complete Registration</button>
-      <p class="text-center mt-3 mb-0">
-        <small class="text-muted">
-          By registering, you agree to the system terms.
-        </small>
-      </p>
+      <!-- Terms and Conditions -->
+      <div class="card mb-4 border-warning">
+        <div class="card-header bg-warning bg-opacity-10">
+          <h6 class="mb-0"><i class="fas fa-file-contract"></i> Terms & Conditions</h6>
+        </div>
+        <div class="card-body">
+          <div class="form-check mb-3">
+            <input class="form-check-input" type="checkbox" name="terms_accepted" 
+                   id="terms_accepted" value="1" required>
+            <label class="form-check-label" for="terms_accepted">
+              I agree to the <a href="#" data-bs-toggle="modal" data-bs-target="#termsModal">Terms and Conditions</a> *
+            </label>
+            <div id="termsAlert" class="text-danger small" style="display:none;">
+              <i class="fas fa-times-circle"></i> You must accept the terms to continue.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Submit Buttons -->
+      <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+        <button type="submit" class="btn btn-success btn-lg px-4">
+          <i class="fas fa-user-check"></i> Complete Registration
+        </button>
+        <a href="{{ url_for('login') }}" class="btn btn-secondary btn-lg px-4">
+          Cancel
+        </a>
+      </div>
     </form>
   </div>
 </div>
+
+<!-- Terms Modal -->
+<div class="modal fade" id="termsModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h5 class="modal-title">Terms and Conditions</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <h6>1. Account Usage</h6>
+        <p>Your account is for authorized inventory management purposes only.</p>
+        
+        <h6>2. Data Privacy</h6>
+        <p>Personal information will be used solely for system administration and auditing.</p>
+        
+        <h6>3. Security</h6>
+        <p>You are responsible for maintaining the confidentiality of your login credentials.</p>
+        
+        <h6>4. Activity Monitoring</h6>
+        <p>All system activities are logged for security and compliance purposes.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+          I Understand
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function validateRegistrationForm() {
+  // Password matching
+  const password = document.getElementById('password').value;
+  const confirmPassword = document.getElementById('confirm_password').value;
+  const mismatchAlert = document.getElementById('passwordMismatch');
+  
+  if (password !== confirmPassword) {
+    mismatchAlert.style.display = 'block';
+    return false;
+  } else {
+    mismatchAlert.style.display = 'none';
+  }
+
+  // Age validation (18+)
+  const birthdate = document.getElementById('birthdate').value;
+  const ageAlert = document.getElementById('ageValidation');
+  
+  if (birthdate) {
+    const today = new Date();
+    const birth = new Date(birthdate);
+    const age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    
+    if (age < 18) {
+      ageAlert.style.display = 'block';
+      return false;
+    } else {
+      ageAlert.style.display = 'none';
+    }
+  }
+
+  // Terms acceptance
+  const terms = document.getElementById('terms_accepted').checked;
+  const termsAlert = document.getElementById('termsAlert');
+  
+  if (!terms) {
+    termsAlert.style.display = 'block';
+    return false;
+  } else {
+    termsAlert.style.display = 'none';
+  }
+
+  return confirm(`⚠️ Confirm registration for ${document.querySelector('input[name="first_name"]').value} ${document.querySelector('input[name="last_name"]').value}?`);
+}
+
+// Real-time password matching
+document.getElementById('confirm_password').addEventListener('input', function() {
+  const password = document.getElementById('password').value;
+  const mismatchAlert = document.getElementById('passwordMismatch');
+  
+  if (this.value && password !== this.value) {
+    mismatchAlert.style.display = 'block';
+  } else {
+    mismatchAlert.style.display = 'none';
+  }
+});
+
+// Set max date to 18 years ago for birthdate
+const maxDate = new Date();
+maxDate.setFullYear(maxDate.getFullYear() - 18);
+document.getElementById('birthdate').max = maxDate.toISOString().split('T')[0];
+</script>
+
+<style>
+.card-header {
+  background: rgba(0, 184, 148, 0.05);
+  border-bottom: 1px solid var(--glass-border);
+}
+</style>
 {% endblock %}

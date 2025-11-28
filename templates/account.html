@@ -1,0 +1,194 @@
+{% extends 'layout/base.html' %}
+{% block title %}My Account{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+  <h3 class="page-header gradient-text mb-4">
+    <i class="fas fa-user-circle"></i> My Account
+  </h3>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+
+  <div class="row">
+    <!-- Profile Details Card -->
+    <div class="col-lg-8 mb-4">
+      <div class="card glass-card h-100">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="mb-0"><i class="fas fa-id-card"></i> Personal Information</h5>
+          <button class="btn btn-sm btn-outline-primary" onclick="editAccount()">
+            <i class="fas fa-edit"></i> Edit
+          </button>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Username</label>
+              <p class="fw-bold">{{ current_user.username }}</p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Department</label>
+              <p class="fw-bold"><span class="badge bg-info">{{ current_user.department }}</span></p>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-4 mb-3">
+              <label class="text-muted small">First Name</label>
+              <p class="fw-bold">{{ current_user.first_name or 'N/A' }}</p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="text-muted small">Middle Name</label>
+              <p class="fw-bold">{{ current_user.middle_name or 'N/A' }}</p>
+            </div>
+            <div class="col-md-4 mb-3">
+              <label class="text-muted small">Last Name</label>
+              <p class="fw-bold">{{ current_user.last_name or 'N/A' }}</p>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Email</label>
+              <p class="fw-bold">{{ current_user.email }}</p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Contact Number</label>
+              <p class="fw-bold">{{ current_user.phone }}</p>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Date of Birth</label>
+              <p class="fw-bold">
+                {% if current_user.birthdate %}
+                  {{ current_user.birthdate.strftime('%B %d, %Y') }}
+                {% else %}
+                  N/A
+                {% endif %}
+              </p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Gender</label>
+              <p class="fw-bold">{{ current_user.gender or 'N/A' }}</p>
+            </div>
+          </div>
+          
+          <div class="row">
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Education Level</label>
+              <p class="fw-bold">{{ current_user.education_level or 'N/A' }}</p>
+            </div>
+            <div class="col-md-6 mb-3">
+              <label class="text-muted small">Account Status</label>
+              <p class="fw-bold">
+                {% if current_user.is_active %}
+                  <span class="badge bg-success">Active</span>
+                {% else %}
+                  <span class="badge bg-danger">Inactive</span>
+                {% endif %}
+                {% if current_user.is_approved %}
+                  <span class="badge bg-info ms-1">Approved</span>
+                {% endif %}
+              </p>
+            </div>
+          </div>
+          
+          {% if current_user.address or current_user.city or current_user.country %}
+          <div class="row">
+            <div class="col-12 mb-3">
+              <label class="text-muted small">Address</label>
+              <p class="fw-bold">
+                {{ current_user.address or '' }}{{ ', ' if current_user.address and current_user.city else '' }}{{ current_user.city or '' }}{{ ', ' if (current_user.address or current_user.city) and current_user.country else '' }}{{ current_user.country or '' }}
+              </p>
+            </div>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Sidebar -->
+    <div class="col-lg-4">
+      <!-- Quick Actions -->
+        <div class="card glass-card mb-4">
+        <div class="card-header">
+            <h6 class="mb-0"><i class="fas fa-cogs"></i> Quick Actions</h6>
+        </div>
+        <div class="card-body">
+            <!-- Change Password - Available to all -->
+            <a href="{{ url_for('change_password') }}" class="btn btn-warning w-100 mb-2">
+            <i class="fas fa-key"></i> Change Password
+            </a>
+
+            {% if current_user.role == 'staff' %}
+            <!-- Delete Account - STAFF ONLY -->
+            <button class="btn btn-danger w-100 mb-2" onclick="confirmAccountDelete()">
+                <i class="fas fa-user-times"></i> Delete Account
+            </button>
+
+            <!-- Report an Issue - STAFF ONLY -->
+            <button class="btn btn-info w-100 mb-2" onclick="openReportModal()">
+                <i class="fas fa-bug"></i> Report an Issue
+            </button>
+            {% endif %}
+
+    {% if current_user.role == 'admin' %}
+      <!-- View Reports - ADMIN ONLY -->
+      <a href="{{ url_for('admin_reports') }}" class="btn btn-primary w-100 mb-2">
+        <i class="fas fa-exclamation-triangle"></i> View User Reports
+      </a>
+    {% endif %}
+  </div>
+</div>
+
+      <!-- Account Stats -->
+      <div class="card glass-card">
+        <div class="card-header">
+          <h6 class="mb-0"><i class="fas fa-chart-bar"></i> Account Stats</h6>
+        </div>
+        <div class="card-body">
+          <p class="mb-2">
+            <small class="text-muted">Member Since</small><br>
+            <strong>{{ format_date_value(current_user.created_at) }}</strong>
+          </p>
+          <p class="mb-2">
+            <small class="text-muted">Reports Submitted</small><br>
+            <strong id="reportCount">{{ current_user.reports|length }}</strong>
+          </p>
+          <p class="mb-0">
+            <small class="text-muted">Last Login</small><br>
+            <strong id="lastLogin">{{ get_last_login(current_user.id) }}</strong>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Report Modal -->
+{% include '_report_modal.html' %}
+
+{% block scripts %}
+<!-- Load report.js BEFORE account.js -->
+<script src="{{ url_for('static', filename='js/report.js') }}"></script>
+<script src="{{ url_for('static', filename='js/account.js') }}"></script>
+{% endblock %}
+
+<style>
+.card-body p.fw-bold {
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+</style>
+{% endblock %}
