@@ -167,16 +167,77 @@
 let currentStep = 1;
 const totalSteps = 2;
 
+function validateCurrentStep() {
+  const currentStepEl = document.getElementById(`step${currentStep}`);
+  const requiredFields = currentStepEl.querySelectorAll('input[required], select[required]');
+  let isValid = true;
+  
+  // Clear previous error indicators
+  requiredFields.forEach(field => field.classList.remove('is-invalid'));
+  
+  for (let field of requiredFields) {
+    if (!field.value.trim()) {
+      field.classList.add('is-invalid');
+      field.focus();
+      isValid = false;
+      break; // Stop at first error
+    }
+    
+    // Additional validation rules
+    if (currentStep === 1) {
+      // Step 1 specific validations
+      if (field.name === 'first_name' && field.value.length < 2) {
+        alert("First name must be at least 2 characters");
+        field.classList.add('is-invalid');
+        isValid = false;
+        break;
+      }
+      if (field.name === 'last_name' && field.value.length < 2) {
+        alert("Last name must be at least 2 characters");
+        field.classList.add('is-invalid');
+        isValid = false;
+        break;
+      }
+      if (field.name === 'email') {
+        const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+        if (!emailRegex.test(field.value)) {
+          alert("Please enter a valid email address");
+          field.classList.add('is-invalid');
+          isValid = false;
+          break;
+        }
+      }
+    }
+    
+    if (currentStep === 2) {
+      // Step 2 specific validations
+      if (field.name === 'username' && field.value.length < 3) {
+        alert("Username must be at least 3 characters");
+        field.classList.add('is-invalid');
+        isValid = false;
+        break;
+      }
+      if (field.name === 'password' && field.value.length < 6) {
+        alert("Password must be at least 6 characters");
+        field.classList.add('is-invalid');
+        isValid = false;
+        break;
+      }
+    }
+  }
+  
+  return isValid;
+}
+
 function changeStep(direction) {
+  // Validate when moving forward (direction = 1)
+  if (direction === 1 && !validateCurrentStep()) {
+    return false; // Stop progression if validation fails
+  }
   
   document.getElementById(`step${currentStep}`).style.display = 'none';
-  
-  
   currentStep += direction;
-  
-  
   document.getElementById(`step${currentStep}`).style.display = 'block';
-  
   
   document.getElementById('progressBar').style.width = (currentStep / totalSteps) * 100 + '%';
   
@@ -221,25 +282,19 @@ function generatePassword() {
   alert('✅ Password generated and copied!');
 }
 
-// Form validation
+// Final form validation
 function validateForm() {
-  const currentStepEl = document.getElementById(`step${currentStep}`);
-  const requiredFields = currentStepEl.querySelectorAll('input[required], select[required]');
-  
-  for (let field of requiredFields) {
-    if (!field.value.trim()) {
-      field.classList.add('is-invalid');
-      field.focus();
-      return false;
-    } else {
-      field.classList.remove('is-invalid');
-    }
-  }
-  
-  if (currentStep < totalSteps) {
-    changeStep(1);
+  // Validate current step before final submission
+  if (!validateCurrentStep()) {
     return false;
   }
+  
+  // Check password match one final time
+  if (!checkPasswordMatch() || document.getElementById('passwordField').value !== document.getElementById('confirmPasswordField').value) {
+    alert("Passwords do not match!");
+    return false;
+  }
+  
   return true;
 }
 </script>

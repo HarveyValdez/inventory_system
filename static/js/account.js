@@ -1,14 +1,11 @@
-/**
- * Account Page JavaScript
- * Handles user account interactions
- */
 
-// Edit account placeholder
+
+// Edit account 
 function editAccount() {
   showFlashMessage("🚧 Account editing is coming soon! Contact admin for changes.", "info");
 }
 
-// Page load animations
+// load animations
 document.addEventListener('DOMContentLoaded', function() {
   const cards = document.querySelectorAll('.card');
   cards.forEach((card, index) => {
@@ -21,11 +18,11 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100 * index);
   });
 
-  // Update report count after slight delay
+  // Update report 
   setTimeout(() => {
     const reportCountEl = document.getElementById('reportCount');
     if (reportCountEl && window.VortexConfig.userId) {
-      // Could fetch actual count from API here
+     
       reportCountEl.textContent = reportCountEl.textContent || '0';
     }
   }, 500);

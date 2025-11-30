@@ -517,42 +517,95 @@ def staff_dashboard():
 # =====================================================
 # USER MANAGEMENT ROUTES (Admin Only)
 # =====================================================
-
 @app.route('/register_staff', methods=['GET', 'POST'])
 @admin_only
 def register_staff():
     if request.method == 'POST':
+        errors = []
+        
+        # Get all fields with proper defaults
+        first_name = request.form.get('first_name', '').strip()
+        last_name = request.form.get('last_name', '').strip()
+        email = request.form.get('email', '').strip()
+        department = request.form.get('department', '').strip()
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+        confirm_password = request.form.get('confirm_password', '').strip()
+        phone = request.form.get('phone', '').strip() or "Not provided"
+        
+        # --- Validation Rules ---
+        
+        # First Name
+        if not first_name:
+            errors.append("First name is required")
+        elif len(first_name) < 2:
+            errors.append("First name must be at least 2 characters")
+        elif not re.match(r'^[a-zA-Z\s\-]+$', first_name):
+            errors.append("First name can only contain letters, spaces, and hyphens")
+        
+        # Last Name
+        if not last_name:
+            errors.append("Last name is required")
+        elif len(last_name) < 2:
+            errors.append("Last name must be at least 2 characters")
+        elif not re.match(r'^[a-zA-Z\s\-]+$', last_name):
+            errors.append("Last name can only contain letters, spaces, and hyphens")
+        
+        # Email
+        if not email:
+            errors.append("Email address is required")
+        elif not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            errors.append("Invalid email format")
+        elif User.query.filter_by(email=email).first():
+            errors.append("Email is already registered")
+        
+        # Department
+        if not department:
+            errors.append("Department selection is required")
+        elif department not in ['Sales', 'Inventory', 'Customer Service', 'Management', 'General']:
+            errors.append("Invalid department selected")
+        
+        # Username
+        if not username:
+            errors.append("Username is required")
+        elif len(username) < 3:
+            errors.append("Username must be at least 3 characters")
+        elif len(username) > 50:
+            errors.append("Username cannot exceed 50 characters")
+        elif not re.match(r'^[a-zA-Z0-9_]+$', username):
+            errors.append("Username can only contain letters, numbers, and underscores")
+        elif User.query.filter_by(username=username).first():
+            errors.append("Username is already taken")
+        
+        # Password
+        if not password:
+            errors.append("Password is required")
+        elif len(password) < 6:
+            errors.append("Password must be at least 6 characters")
+        elif len(password) > 128:
+            errors.append("Password cannot exceed 128 characters")
+        elif password != confirm_password:
+            errors.append("Passwords do not match")
+        
+        # Confirm Password
+        if not confirm_password:
+            errors.append("Please confirm the password")
+        
+        # Phone (Optional but validated if provided)
+        if phone != "Not provided":
+            if not re.match(r'^[\d\-\+\(\)\s]+$', phone):
+                errors.append("Invalid phone number format")
+            elif len(phone) > 20:
+                errors.append("Phone number cannot exceed 20 characters")
+        
+        # --- Handle Errors ---
+        if errors:
+            for error in errors:
+                flash(f"❌ {error}", "danger")
+            return render_template('register_staff.html')
+        
+        # --- Create User ---
         try:
-            errors = []
-            first_name = request.form['first_name'].strip()
-            last_name = request.form['last_name'].strip()
-            email = request.form['email'].strip()
-            department = request.form['department']
-            username = request.form['username'].strip()
-            password = request.form['password']
-            confirm_password = request.form['confirm_password']
-            
-            # GET PHONE WITH DEFAULT EMPTY STRING
-            phone = request.form.get('phone', '').strip() or "Not provided"
-            
-            # Validation checks
-            if len(first_name) < 2: errors.append("First name too short")
-            if len(last_name) < 2: errors.append("Last name too short")
-            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-                errors.append("Invalid email format")
-            if len(username) < 3: errors.append("Username too short")
-            if not re.match(r'^[a-zA-Z0-9_]+$', username): errors.append("Invalid username format")
-            if password != confirm_password: errors.append("Passwords don't match")
-            if len(password) < 6: errors.append("Password too short")
-            if User.query.filter_by(username=username).first(): errors.append("Username exists")
-            if User.query.filter_by(email=email).first(): errors.append("Email exists")
-            
-            if errors:
-                for error in errors:
-                    flash(f"❌ {error}", "danger")
-                return render_template('register_staff.html')
-            
-            # CREATE USER - PHONE WILL NEVER BE NULL
             new_staff = User(
                 username=username,
                 password=bcrypt.generate_password_hash(password).decode('utf-8'),
@@ -561,27 +614,35 @@ def register_staff():
                 first_name=first_name,
                 last_name=last_name,
                 email=email,
-                phone=phone,  # Guarantees a value
+                phone=phone,
                 department=department,
                 is_active=True,
                 is_approved=True,
                 terms_accepted=False
             )
+            
             db.session.add(new_staff)
             
-            log = ActivityLog(user_id=session['user_id'], username=session['username'], 
-                            action="Registered staff", product_name=f"{first_name} {last_name}")
+            log = ActivityLog(
+                user_id=session['user_id'],
+                username=session['username'],
+                action="Registered staff",
+                product_name=f"{first_name} {last_name}"
+            )
             db.session.add(log)
             db.session.commit()
             
-            flash(f"✅ Staff '{username}' created! Password change required on first login.", "success")
+            flash(f"✅ Staff '{username}' created successfully!", "success")
+            flash(f"🔑 Temporary password: {password}", "info")
+            flash("⚠️ Staff must change password on first login", "warning")
             return redirect(url_for('manage_users'))
             
         except Exception as e:
             db.session.rollback()
-            flash(f"❌ Error: {str(e)}", "danger")
+            flash(f"❌ Database error: {str(e)}", "danger")
             return render_template('register_staff.html')
     
+    # GET request
     return render_template('register_staff.html')
 
 # Add API endpoints for validation
@@ -1052,11 +1113,71 @@ def search_users():
 @app.route('/activity_logs')
 @admin_only
 def activity_logs():
+    """Activity logs with date filtering, search, and pagination"""
     
-    logs = ActivityLog.query.options(
-        db.joinedload(ActivityLog.changes)
-    ).order_by(ActivityLog.timestamp.desc()).all()
-    return render_template('activity_logs.html', logs=logs)
+    # Get filter parameters
+    search_query = request.args.get('query', '').strip()
+    start_date = request.args.get('start_date', '').strip()
+    end_date = request.args.get('end_date', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    
+    # Validate pagination
+    if per_page not in [10, 20, 50, 100]:
+        per_page = 20
+    
+    
+    query = ActivityLog.query.options(db.joinedload(ActivityLog.changes))
+    
+    # Apply search filter
+    if search_query:
+        query = query.filter(
+            db.or_(
+                ActivityLog.username.ilike(f"%{search_query}%"),
+                ActivityLog.action.ilike(f"%{search_query}%"),
+                ActivityLog.product_name.ilike(f"%{search_query}%")
+            )
+        )
+    
+    # Apply date filters
+    if start_date or end_date:
+        from sqlalchemy import text
+        
+        # Manila timezone conversion
+        manila_tz = timezone(timedelta(hours=8))
+        
+        if start_date:
+            start_dt = datetime.strptime(start_date, '%Y-%m-%d')
+            start_manila = start_dt.replace(hour=0, minute=0, second=0, tzinfo=manila_tz)
+            start_utc = start_manila.astimezone(timezone.utc)
+            query = query.filter(ActivityLog.timestamp >= start_utc)
+        
+        if end_date:
+            end_dt = datetime.strptime(end_date, '%Y-%m-%d')
+            end_manila = end_dt.replace(hour=23, minute=59, second=59, tzinfo=manila_tz)
+            end_utc = end_manila.astimezone(timezone.utc)
+            query = query.filter(ActivityLog.timestamp <= end_utc)
+    
+    # Apply sorting
+    query = query.order_by(ActivityLog.timestamp.desc())
+    
+    # Paginate
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    logs = pagination.items
+    
+    
+    total_logs = query.count()
+    unique_users = db.session.query(ActivityLog.username).distinct().count()
+    
+    return render_template('activity_logs.html', 
+                         logs=logs,
+                         pagination=pagination,
+                         search_query=search_query,
+                         start_date=start_date,
+                         end_date=end_date,
+                         per_page=per_page,
+                         total_logs=total_logs,
+                         unique_users=unique_users)
 
 
 @app.context_processor
