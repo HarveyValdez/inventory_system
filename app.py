@@ -1093,12 +1093,15 @@ def search_users():
     users = User.query
     
     if query:
+        search_term = f"%{query}%"
         users = users.filter(
             db.or_(
-                User.username.ilike(f"%{query}%"),
-                User.full_name.ilike(f"%{query}%"),
-                User.email.ilike(f"%{query}%"),
-                User.department.ilike(f"%{query}%")
+                User.username.ilike(search_term),
+                User.first_name.ilike(search_term),   
+                User.middle_name.ilike(search_term),  
+                User.last_name.ilike(search_term),    
+                User.email.ilike(search_term),
+                User.department.ilike(search_term)
             )
         )
     

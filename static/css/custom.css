@@ -1285,7 +1285,7 @@ th {
   box-shadow: var(--shadow-accent);
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
   .account-actions {
     flex-direction: column;
@@ -1296,7 +1296,7 @@ th {
   }
 }
 
-/* Multi-step form styles */
+/*  form styles */
 .form-step {
   animation: fadeInUp 0.4s ease-out;
 }
@@ -1374,7 +1374,7 @@ th {
   border-color: var(--danger-color);
 }
 
-/* Pulse animation for submit button */
+/* Pulse animation  */
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7); }
   70% { box-shadow: 0 0 0 10px rgba(0, 184, 148, 0); }
@@ -1385,7 +1385,7 @@ th {
   animation: pulse 2s infinite;
 }
 
-/* Activity Logs Glassmorphism */
+/* Activity Logs  */
 .activity-timeline { animation: fadeInUp 0.6s ease-out; }
 .activity-card { transition: all var(--transition-fast); }
 .activity-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-accent); }
@@ -1433,7 +1433,7 @@ th {
 
 .fade-in { animation: fadeInUp 0.3s ease-out; }
 
-/* Stock Control Fix - Force Horizontal Layout */
+/* Stock Control  */
 .stock-form .input-group {
   flex-direction: row !important;
   align-items: center;
@@ -1454,7 +1454,7 @@ th {
   justify-content: center;
 }
 
-/* Ensure icons center properly */
+/*  icons center  */
 .stock-form .input-group button i {
   margin: 0;
 }
@@ -1464,29 +1464,29 @@ th {
    ========================================== */
 
 @media (max-width: 991px) {
-  /* Make dropdown menu scrollable */
+  
   .navbar-nav .dropdown-menu {
     max-height: 60vh;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
-    position: absolute !important; /* Use absolute instead of fixed */
-    inset: auto auto auto 0 !important; /* Reset Bootstrap positioning */
+    position: absolute !important; 
+    inset: auto auto auto 0 !important;
     transform: none !important;
     width: 100% !important;
     margin-top: 0.5rem !important;
   }
   
-  /* Ensure dropdown items are clickable */
+  
   .dropdown-item {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    position: relative; /* Ensure proper stacking */
+    position: relative; 
     z-index: 1;
   }
   
-  /* Remove the blocking pseudo-element */
+  
   .navbar-nav .dropdown-menu::after {
     display: none !important;
   }
@@ -1501,6 +1501,6 @@ th {
     max-height: 85vh;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    padding-bottom: 2rem; /* Space at bottom */
+    padding-bottom: 2rem;
   }
 }
