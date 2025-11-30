@@ -1,0 +1,45 @@
+<!-- Report Issue Modal - Guaranteed to Work -->
+<div class="modal fade" id="reportModal" tabindex="-1" aria-labelledby="reportModalLabel" aria-hidden="true" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h5 class="modal-title" id="reportModalLabel">
+          <i class="fas fa-exclamation-circle"></i> Report an Issue
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Error display area -->
+        <div id="reportError" class="alert alert-danger" style="display:none;"></div>
+        
+        <form id="reportForm">
+          <div class="mb-3">
+            <label class="form-label">Issue Type *</label>
+            <select name="report_type" class="form-select" required>
+              <option value="">Select Issue Type</option>
+              <option value="bug">🐛 Bug Report</option>
+              <option value="feature">💡 Feature Request</option>
+              <option value="help">❓ Help Needed</option>
+              <option value="security">🔒 Security Issue</option>
+              <option value="other">📌 Other</option>
+            </select>
+          </div>
+          
+          <div class="mb-3">
+            <label class="form-label">Describe the Issue *</label>
+            <textarea name="message" class="form-control" rows="4" 
+                      placeholder="Please provide detailed information..." 
+                      required minlength="10"></textarea>
+            <small class="text-muted">Be as specific as possible. Include steps to reproduce if it's a bug.</small>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger" id="submitReportBtn">
+          <i class="fas fa-paper-plane"></i> Send Report
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

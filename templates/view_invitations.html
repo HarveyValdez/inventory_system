@@ -21,7 +21,7 @@
               <th>Department</th>
               <th>Created</th>
               <th>Expires</th>
-              <th>Created By</th>
+              
               <th>Actions</th>
             </tr>
           </thead>
@@ -38,7 +38,7 @@
                     {% if is_expired %}<br><span class="badge bg-danger">EXPIRED</span>{% endif %}
                   </small>
                 </td>
-                <td>{{ invite.creator.username if invite.creator else 'System' }}</td>
+                
                 <td>
                   {% if not invite.used and not is_expired %}
                     

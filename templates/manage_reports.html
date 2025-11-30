@@ -1,0 +1,146 @@
+{% extends 'layout/base.html' %}
+{% block title %}Manage User Reports{% endblock %}
+
+{% block content %}
+{% set unread_count = UserReport.query.filter_by(status='unread').count() %}
+<div class="container mt-4">
+  <h3 class="page-header gradient-text mb-4">
+    <i class="fas fa-exclamation-triangle"></i> Report Dashboard
+  </h3>
+
+  <!-- Alert Banner -->
+  {% if unread_count > 0 %}
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <strong>🚨 {{ unread_count }} New Report{{ 's' if unread_count > 1 else '' }}!</strong>
+    Users need immediate assistance. 
+    <a href="{{ url_for('admin_reports') }}" class="alert-link">View Reports →</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  {% endif %}
+
+  <!-- Filters -->
+  <div class="card glass-card mb-4">
+    <div class="card-body">
+      <div class="row align-items-end">
+        <div class="col-md-3">
+          <label class="form-label">Status Filter</label>
+          <select class="form-select" id="statusFilter" onchange="filterReports()">
+            <option value="all">All Reports</option>
+            <option value="unread">Unread Only</option>
+            <option value="read">Read</option>
+            <option value="resolved">Resolved</option>
+          </select>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label">Type Filter</label>
+          <select class="form-select" id="typeFilter" onchange="filterReports()">
+            <option value="all">All Types</option>
+            <option value="bug">Bug</option>
+            <option value="feature">Feature</option>
+            <option value="help">Help</option>
+            <option value="security">Security</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="col-md-6 text-end">
+          <button class="btn btn-outline-secondary me-2" onclick="refreshReports()">
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+          <button class="btn btn-success" onclick="markAllRead()">
+            <i class="fas fa-check-double"></i> Mark All Read
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Reports Table -->
+  <div class="table-responsive glass-table">
+    <table class="table table-hover align-middle">
+      <thead class="table-light">
+        <tr>
+          <th>ID</th>
+          <th>User</th>
+          <th>Type</th>
+          <th>Message</th>
+          <th>Submitted</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="reportsTable">
+        {% for report in reports %}
+        <tr class="{{ 'table-danger' if report.status == 'unread' else '' }}" 
+            id="report-row-{{ report.id }}">
+          <td><strong>#{{ report.id }}</strong></td>
+          <td>
+            <strong>{{ report.user.full_name }}</strong><br>
+            <small class="text-muted">{{ report.user.email }}</small><br>
+            <small class="text-muted">Dept: {{ report.user.department }}</small>
+          </td>
+          <td>
+            <span class="badge bg-{{ 'danger' if report.report_type == 'security' else 'warning' if report.report_type == 'bug' else 'info' if report.report_type == 'help' else 'secondary' }}">
+              {{ report.report_type.title() }}
+            </span>
+          </td>
+          <td style="max-width: 350px; word-wrap: break-word;" class="report-message">
+            {{ report.message }}
+          </td>
+          <td><small class="text-muted">{{ report.created_at|manila_time }}</small></td>
+          <td id="status-cell-{{ report.id }}">
+            <span class="badge bg-{{ 'danger' if report.status == 'unread' else 'warning' if report.status == 'read' else 'success' }}">
+              {{ report.status.title() }}
+            </span>
+          </td>
+          <td>
+            <div class="btn-group" role="group">
+              {% if report.status == 'unread' %}
+                <button class="btn btn-sm btn-success" onclick="updateReportStatus('{{ report.id }}', 'read')" title="Mark as Read">
+                  <i class="fas fa-check"></i>
+                </button>
+              {% endif %}
+              <button class="btn btn-sm btn-primary" onclick="replyToUser('{{ report.user_id }}', '{{ report.id }}')" title="Reply to User">
+                <i class="fas fa-reply"></i>
+              </button>
+              <button class="btn btn-sm btn-info" onclick="viewUserDetails('{{ report.user_id }}')" title="View User Details">
+                <i class="fas fa-user"></i>
+              </button>
+              <button class="btn btn-sm btn-danger" onclick="updateReportStatus('{{ report.id }}', 'delete')" title="Delete Report">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not reports %}
+        <tr>
+          <td colspan="8" class="text-center py-5 text-muted">
+            <i class="fas fa-inbox fa-3x mb-3 opacity-50"></i>
+            <p>No reports found.</p>
+          </td>
+        </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/manage_reports.js') }}"></script>
+{% endblock %}
+
+<style>
+.report-message {
+  max-height: 100px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+.glass-table {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--border-radius);
+  overflow: hidden;
+}
+</style>
+{% endblock %}

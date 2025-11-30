@@ -2,86 +2,254 @@
 {% block title %}Register Staff{% endblock %}
 
 {% block content %}
-<div class="mx-auto mt-5" style="max-width: 600px;">
-  <div class="card shadow p-4">
-    <h3 class="text-center mb-3">🧾 Register New Staff</h3>
-    
+<div class="container mt-4" style="max-width: 900px;">
+  <!-- Progress Bar -->
+  <div class="progress mb-4" style="height: 6px; border-radius: 10px;">
+    <div class="progress-bar progress-bar-striped progress-bar-animated" 
+         role="progressbar" id="progressBar" style="width: 0%; background: var(--accent-primary);">
+    </div>
+  </div>
+
+  <div class="card glass-card p-4">
+    <div class="text-center mb-4">
+      <div class="icon-circle mx-auto mb-3">
+        <i class="fas fa-user-plus" style="font-size: 2.5rem; color: var(--accent-primary);"></i>
+      </div>
+      <h3 class="gradient-text">Staff Onboarding</h3>
+      <p class="text-muted">Create staff account with temporary password</p>
+    </div>
+
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
-          <div class="alert alert-{{ category }}">{{ message }}</div>
+          <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
         {% endfor %}
       {% endif %}
     {% endwith %}
 
-    <form method="POST" action="{{ url_for('register_staff') }}" onsubmit="return validateStaffForm();">
-      <div class="row mb-3">
-        <div class="col-md-6">
-          <label class="form-label">Username *</label>
-          <input type="text" name="username" class="form-control" required 
-                 minlength="3" maxlength="50" pattern="[a-zA-Z0-9_]+"
-                 title="Only letters, numbers, and underscores" 
-                 placeholder="Enter username">
-        </div>
-        <div class="col-md-6">
-          <label class="form-label">Password *</label>
-          <input type="password" name="password" class="form-control" required 
-                 minlength="6" placeholder="Enter password">
+    <form method="POST" id="staffForm" onsubmit="return validateForm()">
+      <!-- Hidden staff role -->
+      <input type="hidden" name="role" value="staff">
+      
+      <!-- Step 1-->
+      <div class="form-step" id="step1">
+        <div class="card mb-4 border-0" style="background: rgba(0,184,148,0.03);">
+          <div class="card-header bg-transparent">
+            <h6 class="mb-0"><i class="fas fa-id-card"></i> Basic Information</h6>
+            <small class="text-muted">Required staff details</small>
+          </div>
+          <div class="card-body">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">First Name *</label>
+                <input type="text" name="first_name" class="form-control" required minlength="2">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Last Name *</label>
+                <input type="text" name="last_name" class="form-control" required minlength="2">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label">Email *</label>
+              <input type="email" name="email" class="form-control" required id="emailField">
+            </div>
+
+             
+            <div class="mb-3">
+              <label class="form-label">Phone (Optional)</label>
+              <input type="tel" name="phone" class="form-control" 
+                     placeholder="0917-123-4567" pattern="[0-9+\-\(\)\s]+" maxlength="20">
+              <small class="text-muted">Leave blank if unknown</small>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <label class="form-label">Department *</label>
+                <select name="department" class="form-select" required>
+                  <option value="">Select...</option>
+                  <option value="Sales">Sales</option>
+                  <option value="Inventory">Inventory</option>
+                  <option value="Customer Service">Customer Service</option>
+                  <option value="Management">Management</option>
+                  <option value="General">General</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">System Role</label>
+                <div class="form-control-plaintext" style="color: var(--accent-primary); font-weight: 600;">
+                  <i class="fas fa-user-shield"></i> Staff Member 
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Full Name *</label>
-        <input type="text" name="full_name" class="form-control" required 
-               minlength="3" maxlength="100" placeholder="e.g., Juan Dela Cruz">
-      </div>
+      <!-- Step 2 -->
+      <div class="form-step" id="step2" style="display: none;">
+        <div class="card mb-4 border-0" style="background: rgba(225,112,85,0.03);">
+          <div class="card-header bg-transparent">
+            <h6 class="mb-0"><i class="fas fa-key"></i> Account Credentials</h6>
+            <small class="text-muted">Create temporary login credentials</small>
+          </div>
+          <div class="card-body">
+            <div class="mb-3">
+              <label class="form-label">Username *</label>
+              <input type="text" name="username" class="form-control" required 
+                     minlength="3" pattern="[a-zA-Z0-9_]+" id="usernameField">
+              <small class="text-muted">Letters, numbers, and underscores only</small>
+            </div>
 
-      <div class="row mb-3">
-        <div class="col-md-8">
-          <label class="form-label">Email Address *</label>
-          <input type="email" name="email" class="form-control" required 
-                 placeholder="staff@company.com" pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$">
+            <div class="row mb-3">
+              <div class="col-md-6">
+                <label class="form-label">Temporary Password *</label>
+                <input type="password" name="password" class="form-control" required 
+                       minlength="6" id="passwordField">
+                <button type="button" class="btn btn-sm btn-link" onclick="generatePassword()">
+                  <i class="fas fa-magic"></i> Generate
+                </button>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Confirm Password *</label>
+                <input type="password" name="confirm_password" class="form-control" required 
+                       id="confirmPasswordField">
+                <div id="passwordMatchStatus" class="small mt-1"></div>
+              </div>
+            </div>
+
+            <div class="alert alert-warning">
+              <i class="fas fa-info-circle"></i> Staff must change this password on first login.
+            </div>
+          </div>
         </div>
-        <div class="col-md-4">
-          <label class="form-label">Phone</label>
-          <input type="tel" name="phone" class="form-control" 
-                 placeholder="0917-123-4567" pattern="[0-9+\-\(\)\s]+" maxlength="20">
+
+        <!-- Permissions Preview -->
+        <div class="card border-info">
+          <div class="card-body">
+            <h6 class="mb-3"><i class="fas fa-shield-alt"></i> Staff Permissions</h6>
+            <div class="permission-list">
+              <div class="permission-item"><i class="fas fa-check-circle text-success"></i> View inventory</div>
+              <div class="permission-item"><i class="fas fa-check-circle text-success"></i> Add stock</div>
+              <div class="permission-item"><i class="fas fa-check-circle text-success"></i> Deduct stock</div>
+              <div class="permission-item"><i class="fas fa-check-circle text-success"></i> Edit products</div>
+              <div class="permission-item"><i class="fas fa-times-circle text-danger"></i> Delete products</div>
+              <div class="permission-item"><i class="fas fa-check-circle text-success"></i> Access staff dashboard</div>
+              <div class="permission-item"><i class="fas fa-check-circle text-success"></i> Generate reports</div>
+              <div class="permission-item"><i class="fas fa-times-circle text-danger"></i> Manage users</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div class="mb-3">
-        <label class="form-label">Department</label>
-        <select name="department" class="form-select">
-          <option value="Sales">Sales</option>
-          <option value="Inventory">Inventory</option>
-          <option value="Customer Service">Customer Service</option>
-          <option value="Management">Management</option>
-          <option value="General">General</option>
-        </select>
+      <!-- Navigation Buttons -->
+      <div class="d-flex justify-content-between mt-4">
+        <button type="button" class="btn btn-secondary" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
+          <i class="fas fa-chevron-left"></i> Previous
+        </button>
+        <div class="flex-grow-1"></div>
+        <button type="button" class="btn btn-primary me-2" id="nextBtn" onclick="changeStep(1)">
+          Next <i class="fas fa-chevron-right"></i>
+        </button>
+        <button type="submit" class="btn btn-success pulse-btn" id="submitBtn" style="display: none;">
+          <i class="fas fa-user-plus"></i> Create Account
+        </button>
       </div>
-
-      <button type="submit" class="btn btn-success w-100">Register Staff</button>
-      <a href="{{ url_for('manage_users') }}" class="btn btn-secondary w-100 mt-2">Cancel</a>
     </form>
   </div>
 </div>
 
 <script>
-function validateStaffForm() {
-  const username = document.querySelector('input[name="username"]').value;
-  const email = document.querySelector('input[name="email"]').value;
+// Step navigation function
+let currentStep = 1;
+const totalSteps = 2;
+
+function changeStep(direction) {
   
-  if (!username.match(/^[a-zA-Z0-9_]+$/)) {
-    alert("❌ Username can only contain letters, numbers, and underscores.");
+  document.getElementById(`step${currentStep}`).style.display = 'none';
+  
+  
+  currentStep += direction;
+  
+  
+  document.getElementById(`step${currentStep}`).style.display = 'block';
+  
+  
+  document.getElementById('progressBar').style.width = (currentStep / totalSteps) * 100 + '%';
+  
+  // Update buttons
+  document.getElementById('prevBtn').style.display = currentStep === 1 ? 'none' : 'block';
+  document.getElementById('nextBtn').style.display = currentStep === totalSteps ? 'none' : 'block';
+  document.getElementById('submitBtn').style.display = currentStep === totalSteps ? 'block' : 'none';
+}
+
+// Password matching validation
+function checkPasswordMatch() {
+  const password = document.getElementById('passwordField').value;
+  const confirm = document.getElementById('confirmPasswordField').value;
+  const status = document.getElementById('passwordMatchStatus');
+  
+  if (confirm && password !== confirm) {
+    status.innerHTML = '<i class="fas fa-times-circle"></i> Passwords do not match!';
+    status.className = 'small mt-1 text-danger';
     return false;
+  } else if (confirm && password === confirm) {
+    status.innerHTML = '<i class="fas fa-check-circle"></i> Passwords match!';
+    status.className = 'small mt-1 text-success';
+    return true;
+  } else {
+    status.innerHTML = '';
+  }
+}
+
+document.getElementById('confirmPasswordField').addEventListener('input', checkPasswordMatch);
+document.getElementById('passwordField').addEventListener('input', checkPasswordMatch);
+
+// Password generator
+function generatePassword() {
+  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+  let password = "";
+  for (let i = 0; i < 12; i++) password += chars[Math.floor(Math.random() * chars.length)];
+  
+  document.getElementById('passwordField').value = password;
+  document.getElementById('confirmPasswordField').value = password;
+  checkPasswordMatch();
+  navigator.clipboard.writeText(password);
+  alert('✅ Password generated and copied!');
+}
+
+// Form validation
+function validateForm() {
+  const currentStepEl = document.getElementById(`step${currentStep}`);
+  const requiredFields = currentStepEl.querySelectorAll('input[required], select[required]');
+  
+  for (let field of requiredFields) {
+    if (!field.value.trim()) {
+      field.classList.add('is-invalid');
+      field.focus();
+      return false;
+    } else {
+      field.classList.remove('is-invalid');
+    }
   }
   
-  if (!email.match(/^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/)) {
-    alert("❌ Please enter a valid email address.");
+  if (currentStep < totalSteps) {
+    changeStep(1);
     return false;
   }
-  
-  return confirm(`⚠️ Register new staff account: ${username}?`);
+  return true;
 }
 </script>
+
+<style>
+.permission-item { display: flex; align-items: center; padding: 0.6rem 0; border-bottom: 1px solid var(--glass-border); }
+.permission-item:last-child { border-bottom: none; }
+.permission-item i { width: 20px; margin-right: 0.75rem; }
+.icon-circle { width: 70px; height: 70px; background: var(--glass-bg); border: 2px solid var(--glass-border); border-radius: 50%; display: flex; align-items: center; justify-content: center; transition: all 0.3s; }
+.icon-circle:hover { transform: scale(1.1); box-shadow: var(--shadow-accent); }
+.pulse-btn { animation: pulse 2s infinite; }
+</style>
 {% endblock %}

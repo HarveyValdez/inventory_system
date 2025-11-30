@@ -18,18 +18,17 @@
     </button>
   </form>
 
-  <!-- Add Product Button -->
-
-    {% if session['role'] in ['admin', 'staff'] %}
+  <!-- Add Product Button and Enhanced Export -->
+  {% if session['role'] in ['admin', 'staff'] %}
   <div class="text-center mb-4">
     <a href="{{ url_for('add_product') }}" class="btn btn-success">
       <i class="fas fa-plus-circle"></i> Add New Footwear
     </a>
-    {% if session['role'] in ['admin', 'staff'] %}
-    <a href="{{ url_for('export_csv') }}" class="btn btn-outline-primary ms-2">
+    
+    <!--  ADVANCED EXPORT BUTTON -->
+    <button type="button" class="btn btn-outline-primary ms-2" data-bs-toggle="modal" data-bs-target="#exportModal">
       <i class="fas fa-file-export"></i> Export CSV
-    </a>
-    {% endif %}
+    </button>
   </div>
   {% endif %}
   
@@ -76,7 +75,7 @@
             </a>
           </th>
           
-          <!-- ✅ SEPARATED ACTION COLUMNS -->
+          <!--  SEPARATED ACTION COLUMNS -->
           {% if session['role'] in ['admin', 'staff'] %}
           <th class="text-center">Actions</th>
           <th class="text-center">Stock Control</th>
@@ -125,7 +124,7 @@
           <td><small>{{ product.created_at|manila_time if product.created_at else 'N/A' }}</small></td>
 
           {% if session['role'] in ['admin', 'staff'] %}
-          <!-- ✅ COLUMN 1: Action Buttons -->
+          <!--  COLUMN 1: Action Buttons -->
           <td class="text-center">
             <div class="action-buttons-column">
               <a href="{{ url_for('product_history', product_id=product.id) }}" 
@@ -151,7 +150,7 @@
             </div>
           </td>
 
-          <!-- ✅ COLUMN 2: Stock Controls -->
+          <!--  COLUMN 2: Stock Controls -->
           <td class="text-center">
             <div class="stock-controls-column">
               <!-- Add Stock -->
@@ -193,10 +192,309 @@
         {% endif %}
       </tbody>
     </table>
+
+    <!--  PAGINATION SECTION -->
+    <div class="pagination-container mt-4">
+      <div class="row align-items-center">
+        <div class="col-md-4">
+          <p class="text-muted mb-0">
+            Showing {{ (pagination.page - 1) * per_page + 1 }} - 
+            {{ (pagination.page - 1) * per_page + products|length }} of {{ pagination.total }} items
+          </p>
+        </div>
+        <div class="col-md-4 text-center">
+          <form method="GET" class="d-inline-flex align-items-center">
+            {% if search_query %}
+              <input type="hidden" name="query" value="{{ search_query }}">
+            {% endif %}
+            {% if sort_by %}
+              <input type="hidden" name="sort" value="{{ sort_by }}">
+            {% endif %}
+            {% if order %}
+              <input type="hidden" name="order" value="{{ order }}">
+            {% endif %}
+            <label class="me-2 small">Per page:</label>
+            <select name="per_page" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+              <option value="10" {% if per_page == 10 %}selected{% endif %}>10</option>
+              <option value="20" {% if per_page == 20 %}selected{% endif %}>20</option>
+              <option value="50" {% if per_page == 50 %}selected{% endif %}>50</option>
+              <option value="100" {% if per_page == 100 %}selected{% endif %}>100</option>
+            </select>
+          </form>
+        </div>
+        <div class="col-md-4">
+          <nav aria-label="Page navigation" class="float-end">
+            <ul class="pagination glass-pagination">
+              <!-- Previous Page -->
+              <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                <a class="page-link" href="
+                  {% if pagination.has_prev %}
+                    {{ url_for('index', page=pagination.prev_num, per_page=per_page, sort=sort_by, order=order, query=search_query) }}
+                  {% else %}
+                    #
+                  {% endif %}" aria-label="Previous">
+                  <i class="fas fa-chevron-left"></i>
+                </a>
+              </li>
+
+              <!-- Page Numbers -->
+              {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                {% if page_num %}
+                  <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                    <a class="page-link" href="{{ url_for('index', page=page_num, per_page=per_page, sort=sort_by, order=order, query=search_query) }}">
+                      {{ page_num }}
+                    </a>
+                  </li>
+                {% else %}
+                  <li class="page-item disabled">
+                    <span class="page-link">...</span>
+                  </li>
+                {% endif %}
+              {% endfor %}
+
+              <!-- Next Page -->
+              <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                <a class="page-link" href="
+                  {% if pagination.has_next %}
+                    {{ url_for('index', page=pagination.next_num, per_page=per_page, sort=sort_by, order=order, query=search_query) }}
+                  {% else %}
+                    #
+                  {% endif %}" aria-label="Next">
+                  <i class="fas fa-chevron-right"></i>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!--   EXPORT CSV MODAL -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content glass-card">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exportModalLabel">
+          <i class="fas fa-file-export"></i> CSV Export
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form id="exportForm" method="GET" action="{{ url_for('export_csv') }}" onsubmit="return validateExport()">
+        <div class="modal-body">
+          
+          <!--  FILTER SECTION -->
+          <h6 class="text-success mb-3"><i class="fas fa-filter"></i> Apply Filters (Optional)</h6>
+          
+          <div class="row g-3 mb-4">
+            <!-- ✅ ENHANCED: Dynamic Brand Filter -->
+            <div class="col-md-6">
+              <label class="form-label">Brand</label>
+              <input type="text" name="brand_filter" class="form-control form-control-sm" 
+                     placeholder="Type any brand..." list="brandList">
+              {% if unique_brands %}
+              <datalist id="brandList">
+                {% for brand in unique_brands %}
+                  <option value="{{ brand }}">
+                {% endfor %}
+              </datalist>
+              {% endif %}
+            </div>
+            
+            <!-- Category Filter -->
+            <div class="col-md-6">
+              <label class="form-label">Category</label>
+              <select name="category_filter" class="form-select form-select-sm">
+                <option value="">All Categories</option>
+                {% for cat in ['Sneakers', 'Running', 'Boots', 'Sandals', 'Formal'] %}
+                  <option value="{{ cat }}">{{ cat }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            
+            <!-- Size Filter -->
+            <div class="col-md-6">
+              <label class="form-label">Size Range</label>
+              <div class="input-group input-group-sm">
+                <input type="text" name="size_min" class="form-control" placeholder="Min (e.g., 8)">
+                <span class="input-group-text">-</span>
+                <input type="text" name="size_max" class="form-control" placeholder="Max (e.g., 12)">
+              </div>
+            </div>
+            
+            <!-- Stock Range -->
+            <div class="col-md-6">
+              <label class="form-label">Stock Range</label>
+              <div class="input-group input-group-sm">
+                <input type="number" name="stock_min" class="form-control" placeholder="Min" min="0">
+                <span class="input-group-text">-</span>
+                <input type="number" name="stock_max" class="form-control" placeholder="Max" min="0">
+              </div>
+            </div>
+            
+            <!-- Price Range -->
+            <div class="col-md-6">
+              <label class="form-label">Price Range (₱)</label>
+              <div class="input-group input-group-sm">
+                <input type="number" name="price_min" class="form-control" placeholder="Min" min="0" step="0.01">
+                <span class="input-group-text">-</span>
+                <input type="number" name="price_max" class="form-control" placeholder="Max" min="0" step="0.01">
+              </div>
+            </div>
+            
+            <!-- Date Range -->
+            <div class="col-md-6">
+              <label class="form-label">Date Range</label>
+              <div class="row g-1">
+                <div class="col-6">
+                  <input type="date" name="date_start" class="form-control form-control-sm">
+                </div>
+                <div class="col-6">
+                  <input type="date" name="date_end" class="form-control form-control-sm">
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <hr>
+          
+          <!--  COLUMN SELECTION -->
+          <h6 class="text-primary mb-3"><i class="fas fa-columns"></i> Select Columns</h6>
+          <div class="row g-3">
+            <div class="col-md-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" id="checkAll" checked onchange="toggleAllColumns()">
+                <label class="form-check-label fw-bold" for="checkAll">
+                  <i class="fas fa-list"></i> Select All
+                </label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input column-check" type="checkbox" name="columns" value="name" id="nameCheck" checked>
+                <label class="form-check-label" for="nameCheck">Product Name</label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input column-check" type="checkbox" name="columns" value="brand" id="brandCheck" checked>
+                <label class="form-check-label" for="brandCheck">Brand</label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input column-check" type="checkbox" name="columns" value="category" id="categoryCheck" checked>
+                <label class="form-check-label" for="categoryCheck">Category</label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input column-check" type="checkbox" name="columns" value="size" id="sizeCheck" checked>
+                <label class="form-check-label" for="sizeCheck">Size</label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input column-check" type="checkbox" name="columns" value="stock" id="stockCheck" checked>
+                <label class="form-check-label" for="stockCheck">Stock Quantity</label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input column-check" type="checkbox" name="columns" value="price" id="priceCheck" checked>
+                <label class="form-check-label" for="priceCheck">Price</label>
+              </div>
+            </div>
+            
+            <div class="col-md-6">
+              <div class="form-check">
+                <input class="form-check-input column-check" type="checkbox" name="columns" value="created_at" id="createdCheck" checked>
+                <label class="form-check-label" for="createdCheck">Created Date</label>
+              </div>
+            </div>
+          </div>
+          
+          <hr class="my-3">
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="include_headers" value="true" id="headersCheck" checked>
+              <label class="form-check-label" for="headersCheck">
+                <i class="fas fa-header"></i> Include Column Headers
+              </label>
+            </div>
+          </div>
+          
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-success">
+            <i class="fas fa-download"></i> Download CSV
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
 <script>
+//   Export Validation
+function validateExport() {
+  const checkedBoxes = document.querySelectorAll('.column-check:checked');
+  const categoryFilter = document.querySelector('select[name="category_filter"]').value;
+  const hasFilters = categoryFilter || 
+                    document.querySelector('input[name="size_min"]').value ||
+                    document.querySelector('input[name="size_max"]').value ||
+                    document.querySelector('input[name="stock_min"]').value ||
+                    document.querySelector('input[name="stock_max"]').value ||
+                    document.querySelector('input[name="price_min"]').value ||
+                    document.querySelector('input[name="price_max"]').value ||
+                    document.querySelector('input[name="date_start"]').value ||
+                    document.querySelector('input[name="date_end"]').value;
+  
+  if (checkedBoxes.length === 0) {
+    alert('❌ Please select at least one column to export.');
+    return false;
+  }
+  
+  const filterCount = hasFilters ? ' (with active filters)' : ' (all products)';
+  const columnCount = checkedBoxes.length;
+  
+  return confirm(`📄 Export ${columnCount} columns${filterCount}?\n\nClick OK to download.`);
+}
+
+//  Select All Toggle
+function toggleAllColumns() {
+  const checkAll = document.getElementById('checkAll');
+  const columnChecks = document.querySelectorAll('.column-check');
+  
+  columnChecks.forEach(checkbox => {
+    checkbox.checked = checkAll.checked;
+  });
+}
+
+//  Initialize column checkbox
+document.addEventListener('DOMContentLoaded', function() {
+  const columnChecks = document.querySelectorAll('.column-check');
+  const checkAll = document.getElementById('checkAll');
+  
+  columnChecks.forEach(checkbox => {
+    checkbox.addEventListener('change', function() {
+      const allChecked = Array.from(columnChecks).every(cb => cb.checked);
+      const someChecked = Array.from(columnChecks).some(cb => cb.checked);
+      
+      checkAll.checked = allChecked;
+      checkAll.indeterminate = !allChecked && someChecked;
+    });
+  });
+});
+
 function confirmAddStock(event) {
   const qty = event.target.querySelector('input[name="added_qty"]').value;
   return confirm(`➕ Add ${qty} unit(s) to stock?`);

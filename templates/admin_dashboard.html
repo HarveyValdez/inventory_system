@@ -40,6 +40,20 @@
   </div>
   {% endif %}
 
+  <!-- report -->
+  {% set unread_reports = UserReport.query.filter_by(status='unread').count() %}
+  {% if unread_reports > 0 %}
+  <div class="alert alert-danger alert-dismissible fade show" role="alert">
+    <strong>🚨 {{ unread_reports }} New User Report{{ 's' if unread_reports > 1 else '' }}!</strong>
+    Users need immediate assistance. 
+    <a href="{{ url_for('admin_reports') }}" class="alert-link">View Reports →</a>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  </div>
+  <script>
+    // Auto-refresh every 2 minutes if reports exist
+    setTimeout(() => location.reload(), 120000);
+  </script>
+  {% endif %}
 
 
   <!-- 📊 CHART SECTION -->
@@ -54,7 +68,7 @@
 
     <!-- 📅 DATE RANGE FILTER -->
   <div class="card p-3 mb-3">
-      <h5>📅 Filter Recent Activities</h5>
+      <h5>📅 Filter Activities</h5>
       <form method="GET" class="row g-2">
           <div class="col-md-4">
               <label class="form-label">Start Date</label>

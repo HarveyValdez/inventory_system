@@ -5,7 +5,7 @@ import os
 import filetype
 import csv
 import re
-import secrets
+import secrets 
 from io import StringIO
 from datetime import datetime, timezone, timedelta  
 from functools import wraps
@@ -116,13 +116,39 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(10), nullable=False)
-    full_name = db.Column(db.String(100), nullable=False)
+    must_change_password = db.Column(db.Boolean, default=False, nullable=False)
+    
+    # Enhanced name fields
+    first_name = db.Column(db.String(50), nullable=False)
+    middle_name = db.Column(db.String(50), nullable=True)
+    last_name = db.Column(db.String(50), nullable=False)
+    
     email = db.Column(db.String(100), unique=True, nullable=False)
-    phone = db.Column(db.String(20), nullable=True)
+    phone = db.Column(db.String(20), nullable=False)  # Made required
+    
+    # Address fields
+    address = db.Column(db.Text, nullable=True)
+    city = db.Column(db.String(100), nullable=True)
+    country = db.Column(db.String(100), nullable=True)
+    
+    # Personal details
+    birthdate = db.Column(db.Date, nullable=True)
+    gender = db.Column(db.String(20), nullable=True)
+    education_level = db.Column(db.String(50), nullable=True)
+    
     department = db.Column(db.String(50), default='General')
     is_active = db.Column(db.Boolean, default=True)
     is_approved = db.Column(db.Boolean, default=False)
+    terms_accepted = db.Column(db.Boolean, nullable=False, default=False)
+    
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
+
+    @property
+    def full_name(self):
+        """Dynamically generate full name"""
+        if self.middle_name:
+            return f"{self.first_name} {self.middle_name} {self.last_name}"
+        return f"{self.first_name} {self.last_name}"
 
 class Product(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -216,6 +242,31 @@ class Invitation(db.Model):
     
     def __repr__(self):
         return f"<Invitation {self.email} - {'Used' if self.used else 'Active'}>"
+    
+class UserReport(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    report_type = db.Column(db.String(50), nullable=False)  # 'bug', 'feature', 'help', 'other'
+    message = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default='unread')  # unread, read, resolved
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(tz=timezone.utc))
+    
+    # Relationship
+    user = db.relationship('User', backref='reports', lazy=True)
+    
+    def __repr__(self):
+        return f"<UserReport {self.id} - {self.user.username}: {self.report_type}>"
+
+# Add this to your models section if needed
+class StaffSetupToken(db.Model):
+    """Separate table for staff setup tokens to keep User model clean"""
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    
+    user = db.relationship('User', backref='setup_token', lazy=True)
 
 # =====================================================
 # TEMPLATE FILTERS
@@ -266,34 +317,30 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and bcrypt.check_password_hash(user.password, password):
+            # CHECK PASSWORD CHANGE REQUIREMENT
+            if hasattr(user, 'must_change_password') and user.must_change_password:
+                session['user_id'] = user.id
+                session['username'] = user.username
+                session['role'] = user.role
+                flash("⚠️ You must change your password before continuing.", "warning")
+                return redirect(url_for('change_password'))
             
             if not user.is_approved:
-                flash("❌ Your account is pending admin approval. Please contact an administrator.", "warning")
+                flash("❌ Account pending approval.", "warning")
                 return render_template('login.html')
 
+            # Normal login flow...
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
-
             
-            login_log = LoginActivity(
-                user_id=user.id,
-                username=user.username,
-                action='Login',
-                ip_address=request.remote_addr
-            )
-            db.session.add(login_log)
+            db.session.add(LoginActivity(user_id=user.id, username=user.username, action='Login'))
             db.session.commit()
-
+            
             flash(f"Welcome, {user.username}!", "success")
-
-           
-            if user.role == 'admin':
-                return redirect(url_for('homepage'))
-            elif user.role == 'staff':
-                return redirect(url_for('homepage'))
+            return redirect(url_for('homepage' if user.role == 'admin' else 'staff_dashboard'))
         else:
-            flash("Invalid username or password", "danger")
+            flash("Invalid credentials", "danger")
 
     return render_template('login.html')
 
@@ -322,44 +369,36 @@ def change_password():
         flash("Please log in first.", "warning")
         return redirect(url_for('login'))
 
-    if session.get('role') not in ['staff', 'admin']:
-        flash("Unauthorized access.", "danger")
-        return redirect(url_for('index'))
-
     user = User.query.get_or_404(session['user_id'])
+    must_change = hasattr(user, 'must_change_password') and user.must_change_password
 
     if request.method == 'POST':
         old_password = request.form['old_password']
         new_password = request.form['new_password']
         confirm_password = request.form['confirm_password']
 
-        # ✅ VALIDATION: Password length 
         if len(new_password) < 6:
             flash("❌ Password must be at least 6 characters.", "danger")
             return redirect(url_for('change_password'))
 
-        # ✅ VALIDATION: New password 
-        if new_password == old_password:
-            flash("❌ New password must be different from old password.", "danger")
-            return redirect(url_for('change_password'))
-
-        # ✅ VALIDATION:old password
         if not bcrypt.check_password_hash(user.password, old_password):
-            flash("❌ Incorrect old password.", "danger")
+            flash("❌ Incorrect password.", "danger")
             return redirect(url_for('change_password'))
 
-        # ✅ VALIDATION:password match
         if new_password != confirm_password:
-            flash("❌ New passwords do not match.", "danger")
+            flash("❌ Passwords do not match.", "danger")
             return redirect(url_for('change_password'))
 
+        # Update password and clear flag
         user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        if hasattr(user, 'must_change_password'):
+            user.must_change_password = False
         db.session.commit()
 
-        flash("✅ Password updated successfully!", "success")
+        flash("✅ Password changed successfully!", "success")
         return redirect(url_for('admin_dashboard' if user.role == 'admin' else 'staff_dashboard'))
 
-    return render_template('change_password.html')
+    return render_template('change_password.html', must_change_password=must_change)
 
 
 # =====================================================
@@ -483,72 +522,97 @@ def staff_dashboard():
 @admin_only
 def register_staff():
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password']
-        full_name = request.form['full_name'].strip()
-        email = request.form['email'].strip()
-        phone = request.form['phone'].strip()
-        department = request.form['department']
-
-        # SERVER-SIDE VALIDATION
-        errors = []
-        
-        if len(username) < 3:
-            errors.append("Username must be at least 3 characters.")
-        
-        if len(password) < 6:
-            errors.append("Password must be at least 6 characters.")
-        
-        if not full_name or len(full_name) < 3:
-            errors.append("Full name is required and must be at least 3 characters.")
-        
-        # Email validation
-        import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not email or not re.match(email_pattern, email):
-            errors.append("Valid email address is required.")
-        
-        # Check for existing 
-        if User.query.filter_by(username=username).first():
-            errors.append(f"Username '{username}' already exists!")
-        
-        if User.query.filter_by(email=email).first():
-            errors.append(f"Email '{email}' is already registered!")
-        
-        # errors 
-        if errors:
-            for error in errors:
-                flash(f"❌ {error}", "danger")
-            return redirect(url_for('register_staff'))
-
-        # ✅ CREATE USER WITH DETAILS
-        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_staff = User(
-            username=username,
-            password=hashed_pw,
-            role='staff',
-            full_name=full_name,
-            email=email,
-            phone=phone,
-            department=department
-        )
-        db.session.add(new_staff)
-        db.session.commit()
-
-        # LOG ACTIVITY
-        activity = ActivityLog(
-            user_id=session['user_id'],
-            username=session['username'],
-            action=f"Admin registered new staff: {username}",
-            product_name=f"{full_name} ({department})"
-        )
-        db.session.add(activity)
-        db.session.commit()
-
-        flash(f"✅ Staff '{username}' registered successfully!", "success")
-        return redirect(url_for('manage_users'))
-
+        try:
+            errors = []
+            first_name = request.form['first_name'].strip()
+            last_name = request.form['last_name'].strip()
+            email = request.form['email'].strip()
+            department = request.form['department']
+            username = request.form['username'].strip()
+            password = request.form['password']
+            confirm_password = request.form['confirm_password']
+            
+            # GET PHONE WITH DEFAULT EMPTY STRING
+            phone = request.form.get('phone', '').strip() or "Not provided"
+            
+            # Validation checks
+            if len(first_name) < 2: errors.append("First name too short")
+            if len(last_name) < 2: errors.append("Last name too short")
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                errors.append("Invalid email format")
+            if len(username) < 3: errors.append("Username too short")
+            if not re.match(r'^[a-zA-Z0-9_]+$', username): errors.append("Invalid username format")
+            if password != confirm_password: errors.append("Passwords don't match")
+            if len(password) < 6: errors.append("Password too short")
+            if User.query.filter_by(username=username).first(): errors.append("Username exists")
+            if User.query.filter_by(email=email).first(): errors.append("Email exists")
+            
+            if errors:
+                for error in errors:
+                    flash(f"❌ {error}", "danger")
+                return render_template('register_staff.html')
+            
+            # CREATE USER - PHONE WILL NEVER BE NULL
+            new_staff = User(
+                username=username,
+                password=bcrypt.generate_password_hash(password).decode('utf-8'),
+                role='staff',
+                must_change_password=True,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone=phone,  # Guarantees a value
+                department=department,
+                is_active=True,
+                is_approved=True,
+                terms_accepted=False
+            )
+            db.session.add(new_staff)
+            
+            log = ActivityLog(user_id=session['user_id'], username=session['username'], 
+                            action="Registered staff", product_name=f"{first_name} {last_name}")
+            db.session.add(log)
+            db.session.commit()
+            
+            flash(f"✅ Staff '{username}' created! Password change required on first login.", "success")
+            return redirect(url_for('manage_users'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f"❌ Error: {str(e)}", "danger")
+            return render_template('register_staff.html')
+    
     return render_template('register_staff.html')
+
+# Add API endpoints for validation
+@app.route('/api/check_username')
+def check_username():
+    """Check if username is available"""
+    username = request.args.get('username', '').strip()
+    
+    if not username or len(username) < 3:
+        return {'available': False, 'message': 'Username too short'}
+    
+    if not re.match(r'^[a-zA-Z0-9_]+$', username):
+        return {'available': False, 'message': 'Invalid characters'}
+    
+    if User.query.filter_by(username=username).first():
+        return {'available': False, 'message': 'Username already taken'}
+    
+    return {'available': True, 'message': 'Username available'}
+
+@app.route('/api/check_email')
+def check_email():
+    """Check if email is available"""
+    email = request.args.get('email', '').strip()
+    
+    if not email or '@' not in email:
+        return {'available': False, 'message': 'Invalid email format'}
+    
+    if User.query.filter_by(email=email).first():
+        return {'available': False, 'message': 'Email already registered'}
+    
+    return {'available': True, 'message': 'Email available'}
 
 
 @app.route('/manage_users')
@@ -582,21 +646,26 @@ def index():
     if 'username' not in session:
         return redirect(url_for('login'))
 
+    # Get query parameters from URL
     search_query = request.args.get('query', '').strip()
-    sort_by = request.args.get('sort', 'id')  # Default sort by ID
-    order = request.args.get('order', 'asc')  # Default order ascending
+    sort_by = request.args.get('sort', 'id')
+    order = request.args.get('order', 'asc')
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
 
-    
-    allowed_columns = ['id', 'name', 'brand', 'category', 'size', 'stock', 'price', 'date_added']
+    # Validate parameters for security
+    allowed_columns = ['id', 'name', 'brand', 'category', 'size', 'stock', 'price', 'created_at']
     if sort_by not in allowed_columns:
         sort_by = 'id'
     if order not in ['asc', 'desc']:
         order = 'asc'
+    if per_page not in [10, 20, 50, 100]:  
+        per_page = 20
 
     # Build base query
     query = Product.query
 
-    # Apply search 
+    # Apply search filter
     if search_query:
         query = query.filter(
             db.or_(
@@ -615,14 +684,25 @@ def index():
     else:
         query = query.order_by(sort_column.asc())
 
-    products = query.all()
+    # Apply pagination
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+    products = pagination.items
+
+    #  DYNAMIC
+    unique_brands = db.session.query(Product.brand).filter(
+        Product.brand.isnot(None),
+        Product.brand != ''
+    ).distinct().order_by(Product.brand).all()
+    unique_brands = [brand[0] for brand in unique_brands if brand[0]]
 
     return render_template('index.html', 
                          products=products, 
+                         pagination=pagination,
                          search_query=search_query,
                          sort_by=sort_by,
-                         order=order)
-
+                         order=order,
+                         per_page=per_page,
+                         unique_brands=unique_brands)  
 
 # =====================================================
 # PRODUCT CRUD ROUTES
@@ -1003,6 +1083,19 @@ def inject_invitation_count():
         return Invitation.query.filter_by(used=False).count()
     return {'pending_invitations_count': get_count}
 
+
+@app.context_processor
+def inject_report_alerts():
+    """Make unread report count available in all templates"""
+    def get_unread_report_count():
+        return UserReport.query.filter_by(status='unread').count()
+    
+
+    return {
+        'UserReport': UserReport, 
+        'unread_reports_count': get_unread_report_count
+    }
+
 # =====================================================
 # HOMEPAGE ROUTE
 # =====================================================
@@ -1094,23 +1187,166 @@ def create_admin():
 # =====================================================
 @app.route('/export_csv')
 def export_csv():
-    products = Product.query.all()
+    """Export CSV with customizable columns and advanced filters including Brand"""
+    if 'username' not in session or session.get('role') not in ['admin', 'staff']:
+        flash("Access denied.", "danger")
+        return redirect(url_for('login'))
     
-    # Create CSV in memory
+    # Get column selection
+    columns = request.args.getlist('columns')
+    include_headers = request.args.get('include_headers') == 'true'
+    
+    # Get filters
+    brand_filter = request.args.get('brand_filter', '').strip()
+    category_filter = request.args.get('category_filter', '').strip()
+    size_min = request.args.get('size_min', '').strip()
+    size_max = request.args.get('size_max', '').strip()
+    stock_min = request.args.get('stock_min', type=int)
+    stock_max = request.args.get('stock_max', type=int)
+    price_min = request.args.get('price_min', type=float)
+    price_max = request.args.get('price_max', type=float)
+    date_start = request.args.get('date_start', '').strip()
+    date_end = request.args.get('date_end', '').strip()
+    
+    # Validate columns
+    if not columns:
+        flash("❌ Please select at least one column to export.", "warning")
+        return redirect(url_for('index'))
+    
+    # Map column names to headers
+    column_headers = {
+        'name': 'Product Name',
+        'brand': 'Brand',
+        'category': 'Category',
+        'size': 'Size',
+        'stock': 'Stock',
+        'price': 'Price (₱)',
+        'created_at': 'Created Date'
+    }
+    
+    # Build base query
+    query = Product.query
+    
+    # Apply filters dynamically
+    filters_applied = []
+    
+    #  NEW: Brand filter
+    if brand_filter:
+        query = query.filter(Product.brand.ilike(f"%{brand_filter}%"))
+        filters_applied.append(f"Brand: {brand_filter}")
+    
+    if category_filter:
+        query = query.filter(Product.category == category_filter)
+        filters_applied.append(f"Category: {category_filter}")
+    
+    if size_min or size_max:
+        if size_min and size_max:
+            query = query.filter(Product.size.between(size_min, size_max))
+            filters_applied.append(f"Size: {size_min} - {size_max}")
+        elif size_min:
+            query = query.filter(Product.size >= size_min)
+            filters_applied.append(f"Size ≥ {size_min}")
+        elif size_max:
+            query = query.filter(Product.size <= size_max)
+            filters_applied.append(f"Size ≤ {size_max}")
+    
+    if stock_min is not None or stock_max is not None:
+        if stock_min is not None and stock_max is not None:
+            query = query.filter(Product.stock.between(stock_min, stock_max))
+            filters_applied.append(f"Stock: {stock_min} - {stock_max}")
+        elif stock_min is not None:
+            query = query.filter(Product.stock >= stock_min)
+            filters_applied.append(f"Stock ≥ {stock_min}")
+        elif stock_max is not None:
+            query = query.filter(Product.stock <= stock_max)
+            filters_applied.append(f"Stock ≤ {stock_max}")
+    
+    if price_min is not None or price_max is not None:
+        if price_min is not None and price_max is not None:
+            query = query.filter(Product.price.between(price_min, price_max))
+            filters_applied.append(f"Price: ₱{price_min:.2f} - ₱{price_max:.2f}")
+        elif price_min is not None:
+            query = query.filter(Product.price >= price_min)
+            filters_applied.append(f"Price ≥ ₱{price_min:.2f}")
+        elif price_max is not None:
+            query = query.filter(Product.price <= price_max)
+            filters_applied.append(f"Price ≤ ₱{price_max:.2f}")
+    
+    if date_start or date_end:
+        if date_start:
+            start_date = datetime.strptime(date_start, '%Y-%m-%d')
+            query = query.filter(Product.created_at >= start_date)
+        if date_end:
+            end_date = datetime.strptime(date_end, '%Y-%m-%d') + timedelta(days=1)
+            query = query.filter(Product.created_at < end_date)
+        filters_applied.append(f"Date: {date_start or 'Start'} to {date_end or 'End'}")
+    
+    # Apply search 
+    search_query = request.args.get('query', '').strip()
+    if search_query:
+        query = query.filter(
+            db.or_(
+                Product.name.ilike(f"%{search_query}%"),
+                Product.brand.ilike(f"%{search_query}%"),
+                Product.category.ilike(f"%{search_query}%"),
+                Product.size.ilike(f"%{search_query}%")
+            )
+        )
+        filters_applied.append(f"Search: '{search_query}'")
+    
+    # Sort by name
+    products = query.order_by(Product.name.asc()).all()
+    
+    if not products:
+        flash("⚠️ No products found matching your filters.", "warning")
+        return redirect(url_for('index'))
+    
+    # Create CSV
     output = StringIO()
     writer = csv.writer(output)
     
-    # Write header
-    writer.writerow(['ID', 'Name', 'Brand', 'Category', 'Size', 'Stock', 'Price'])
+    # Write filters comment
+    if filters_applied:
+        writer.writerow([f"Filters Applied: {' | '.join(filters_applied)}"])
     
-    # Write data
-    for p in products:
-        writer.writerow([p.id, p.name, p.brand, p.category, p.size, p.stock, p.price])
+    # Write headers
+    if include_headers:
+        headers = [column_headers.get(col, col) for col in columns]
+        writer.writerow(headers)
     
-    # Create response
+    # Write data rows
+    for product in products:
+        row = []
+        for col in columns:
+            if col == 'name':
+                row.append(product.name or 'N/A')
+            elif col == 'brand':
+                row.append(product.brand or 'N/A')
+            elif col == 'category':
+                row.append(product.category or 'N/A')
+            elif col == 'size':
+                size_str = f"{product.size} {product.size_unit}" if product.size and product.size_unit else product.size or 'N/A'
+                row.append(size_str)
+            elif col == 'stock':
+                row.append(str(product.stock or 0))
+            elif col == 'price':
+                row.append(f"{product.price:.2f}" if product.price else '0.00')
+            elif col == 'created_at':
+                row.append(product.created_at.strftime("%Y-%m-%d %H:%M:%S") if product.created_at else 'N/A')
+            else:
+                row.append('N/A')
+        writer.writerow(row)
+    
+    # Prepare response
     response = make_response(output.getvalue())
-    response.headers["Content-Disposition"] = "attachment; filename=inventory.csv"
-    response.headers["Content-type"] = "text/csv"
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filter_text = "_filtered" if filters_applied else "_all"
+    filename = f"inventory{filter_text}_{timestamp}.csv"
+    
+    response.headers["Content-Disposition"] = f"attachment; filename={filename}"
+    response.headers["Content-Type"] = "text/csv; charset=utf-8"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
     return response
 
 # =====================================================
@@ -1134,15 +1370,14 @@ def product_history(product_id):
 
 @app.route('/debug')
 def debug_homepage():
-    # Raw database checks
     total = Product.query.count()
     low_stock = Product.query.filter(Product.stock < 5).count()
     active = User.query.filter(User.is_active == True).count()
     
-    # Print to console
+ 
     print(f"DEBUG: total_products={total}, low_stock={low_stock}, active_users={active}")
     
-    # Return raw values (bypass template)
+
     return {
         "total_products": total,
         "low_stock_count": low_stock,
@@ -1267,16 +1502,13 @@ def cancel_invitation(invite_id):
 # =====================================================
 # INVITATION-BASED REGISTRATION
 # =====================================================
-
 @app.route('/register/<token>', methods=['GET', 'POST'])
 def register_with_invite(token):
     """
-    Register using invitation token. Validates expiry with robust datetime handling.
+    Enhanced registration with comprehensive user details
     """
-    # invitation
     invitation = Invitation.query.filter_by(token=token).first()
     
-    # Check if invitation exists and is unused
     if not invitation or invitation.used:
         flash("❌ Invalid or already used invitation link", "danger")
         return redirect(url_for('login'))
@@ -1284,8 +1516,6 @@ def register_with_invite(token):
     # Check expiry
     now = datetime.utcnow() 
     expires_at = invitation.expires_at
-    
-   
     if expires_at.tzinfo is not None:
         expires_at = expires_at.replace(tzinfo=None)
     
@@ -1293,51 +1523,95 @@ def register_with_invite(token):
         flash("❌ This invitation has expired", "danger")
         return redirect(url_for('login'))
     
-    
     if request.method == 'GET':
         return render_template('register_with_invite.html', 
                                token=token, 
-                               email=invitation.email)
+                               email=invitation.email,
+                               department=invitation.department)
     
-    
-    username = request.form['username'].strip()
-    password = request.form['password']
-    full_name = request.form['full_name'].strip()
-    phone = request.form['phone'].strip()
-    
-    # ✅ VALIDATION
+    # ==== SERVER-SIDE VALIDATION ====
     errors = []
+    
+    # Required fields
+    required_fields = ['username', 'password', 'confirm_password', 
+                       'first_name', 'last_name', 'phone', 'birthdate']
+    
+    for field in required_fields:
+        if not request.form.get(field):
+            errors.append(f"{field.replace('_', ' ').title()} is required.")
+    
+    # Username validation
+    username = request.form['username'].strip()
     if len(username) < 3:
         errors.append("Username must be at least 3 characters.")
+    if User.query.filter_by(username=username).first():
+        errors.append(f"Username '{username}' already exists.")
+    
+    # Password validation
+    password = request.form['password']
+    confirm_password = request.form['confirm_password']
     if len(password) < 6:
         errors.append("Password must be at least 6 characters.")
-    if not full_name or len(full_name) < 3:
-        errors.append("Full name required.")
-    if User.query.filter_by(username=username).first():
-        errors.append(f"Username '{username}' already exists!")
+    if password != confirm_password:
+        errors.append("Passwords do not match.")
     
+    # Name validation
+    if len(request.form['first_name']) < 2:
+        errors.append("First name must be at least 2 characters.")
+    if len(request.form['last_name']) < 2:
+        errors.append("Last name must be at least 2 characters.")
+    
+    # Date validation
+    try:
+        birthdate = datetime.strptime(request.form['birthdate'], '%Y-%m-%d').date()
+        today = datetime.now().date()
+        age = today.year - birthdate.year - ((today.month, today.day) < (birthdate.month, birthdate.day))
+        if age < 18:
+            errors.append("You must be at least 18 years old to register.")
+    except ValueError:
+        errors.append("Invalid birthdate format.")
+    
+   
+    phone = request.form['phone'].strip()
+    if not re.match(r'^[\d\-\+\(\)\s]+$', phone):
+        errors.append("Invalid phone number format.")
+    
+    
+    if not request.form.get('terms_accepted'):
+        errors.append("You must accept the Terms and Conditions.")
+    
+    # Display errors
     if errors:
         for error in errors:
             flash(f"❌ {error}", "danger")
         return render_template('register_with_invite.html', 
                                token=token, 
                                email=invitation.email,
-                               username=username,
-                               full_name=full_name)
+                               department=invitation.department,
+                               form_data=request.form)
     
     try:
-        #  CREATE APPROVED USER
+        # Create user with enhanced details
         hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
         new_user = User(
             username=username,
             password=hashed_pw,
             role=invitation.role,
-            full_name=full_name,
+            first_name=request.form['first_name'].strip(),
+            middle_name=request.form.get('middle_name', '').strip() or None,
+            last_name=request.form['last_name'].strip(),
             email=invitation.email,
             phone=phone,
             department=invitation.department,
+            birthdate=birthdate,
+            address=request.form.get('address', '').strip() or None,
+            city=request.form.get('city', '').strip() or None,
+            country=request.form.get('country', '').strip() or None,
+            gender=request.form.get('gender') or None,
+            education_level=request.form.get('education_level') or None,
             is_active=True,
-            is_approved=True
+            is_approved=True,
+            terms_accepted=True
         )
         db.session.add(new_user)
         
@@ -1345,17 +1619,17 @@ def register_with_invite(token):
         invitation.used = True
         invitation.used_at = datetime.utcnow()
         
-        
+        # Log activity
         log = ActivityLog(
             user_id=None,
             username="System",
             action=f"Staff registered via invitation",
-            product_name=f"{full_name} ({invitation.email})"
+            product_name=f"{new_user.full_name} ({invitation.email})"
         )
         db.session.add(log)
         db.session.commit()
         
-        flash(f"✅ Registration successful! Welcome {full_name}. You can now log in.", "success")
+        flash(f"✅ Registration successful! Welcome {new_user.full_name}. You can now log in.", "success")
         return redirect(url_for('login'))
         
     except Exception as e:
@@ -1363,8 +1637,179 @@ def register_with_invite(token):
         flash(f"❌ Registration failed: {str(e)}", "danger")
         return render_template('register_with_invite.html', 
                                token=token, 
-                               email=invitation.email)
+                               email=invitation.email,
+                               department=invitation.department,
+                               form_data=request.form)
 
+# =====================================================
+# ACCOUNT MANAGEMENT ROUTES
+# =====================================================
+
+@app.route('/account')
+def account():
+    """Display user account details"""
+    if 'user_id' not in session:
+        flash("Please log in first.", "warning")
+        return redirect(url_for('login'))
+    
+    user = User.query.get_or_404(session['user_id'])
+    return render_template('account.html', user=user)
+
+
+@app.route('/delete_account/<int:id>', methods=['POST'])
+def delete_account(id):
+    """Allow user to delete their own account"""
+    if 'user_id' not in session or session['user_id'] != id:
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for('login'))
+    
+    user = User.query.get_or_404(id)
+    
+    # Prevent admin self-deletion
+    if user.role == 'admin':
+        flash("Admin accounts cannot be self-deleted. Contact another admin.", "danger")
+        return redirect(url_for('account'))
+    
+    try:
+        # Log the deletion
+        log = ActivityLog(
+            user_id=session['user_id'],
+            username=session['username'],
+            action="User deleted their own account",
+            product_name=f"{user.full_name} ({user.email})"
+        )
+        db.session.add(log)
+        
+
+        UserReport.query.filter_by(user_id=user.id).delete()
+        
+        db.session.delete(user)
+        db.session.commit()
+        
+        session.clear()
+        return {"success": True, "message": "Account deleted successfully"}
+        
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
+
+
+# =====================================================
+# REPORTING SYSTEM ROUTES
+# =====================================================
+
+@app.route('/submit_report', methods=['POST'])
+def submit_report():
+    """Submit a user report/issue"""
+    if 'user_id' not in session:
+        return {"success": False, "message": "Not logged in"}, 401
+    
+    data = request.get_json()
+    
+    # Validate
+    if not data.get('message') or len(data['message'].strip()) < 10:
+        return {"success": False, "message": "Message must be at least 10 characters"}, 400
+    
+    if not data.get('report_type'):
+        return {"success": False, "message": "Please select an issue type"}, 400
+    
+    try:
+        report = UserReport(
+            user_id=session['user_id'],
+            report_type=data['report_type'],
+            message=data['message'].strip(),
+            status='unread'
+        )
+        db.session.add(report)
+        db.session.commit()
+        
+
+        
+        return {"success": True, "message": "Report submitted successfully"}
+        
+    except Exception as e:
+        db.session.rollback()
+        return {"success": False, "message": str(e)}, 500
+
+
+@app.route('/api/unread_reports')
+@admin_only
+def api_unread_reports():
+    """API endpoint for unread report count (polling)"""
+    count = UserReport.query.filter_by(status='unread').count()
+    return {"count": count}
+
+
+@app.route('/admin/reports')
+@admin_only
+def admin_reports():
+    """Admin page to view and manage user reports"""
+    reports = UserReport.query.order_by(UserReport.created_at.desc()).all()
+    return render_template('manage_reports.html', reports=reports)
+
+
+@app.route('/admin/report_action/<int:report_id>', methods=['POST'])
+@admin_only
+def report_action(report_id):
+    """Mark report as read/resolved"""
+    report = UserReport.query.get_or_404(report_id)
+    action = request.json.get('action')
+    
+    if action == 'mark_read':
+        report.status = 'read'
+    elif action == 'resolve':
+        report.status = 'resolved'
+    elif action == 'delete':
+        db.session.delete(report)
+    
+    db.session.commit()
+    return {"success": True}
+
+
+# =====================================================
+# API: Get Current User Details
+# =====================================================
+
+@app.context_processor
+def inject_user_details():
+    """Make current user available in all templates"""
+    if 'user_id' in session:
+        return {'current_user': User.query.get(session['user_id'])}
+    return {'current_user': None}
+
+
+
+@app.context_processor
+def inject_user_utils():
+    """Safe utility functions for templates (not filters)"""
+    
+    def get_last_login(user_id):
+        """Get formatted last login time for a user"""
+        last_login = LoginActivity.query.filter_by(
+            user_id=user_id, 
+            action='Login'
+        ).order_by(LoginActivity.timestamp.desc()).first()
+        
+        if not last_login or not last_login.timestamp:
+            return 'First time'
+        
+        
+        return manila_time_filter(last_login.timestamp)
+    
+    def format_date_value(value, format='%B %d, %Y'):
+        """Format a date value (not a filter)"""
+        if not value:
+            return 'N/A'
+        try:
+            return value.strftime(format)
+        except:
+            return str(value)
+    
+   
+    return {
+        'get_last_login': get_last_login,
+        'format_date_value': format_date_value,
+    }
 # =====================================================
 # RUN APPLICATION
 # =====================================================
