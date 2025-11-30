@@ -171,3 +171,4 @@ function openReports() {
 window.addEventListener('beforeunload', function() {
   if (reportCheckInterval) clearInterval(reportCheckInterval);
 });
+

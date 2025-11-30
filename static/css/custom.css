@@ -1458,3 +1458,49 @@ th {
 .stock-form .input-group button i {
   margin: 0;
 }
+
+/* ==========================================
+   MOBILE DROPDOWN SCROLL FIX - WORKING
+   ========================================== */
+
+@media (max-width: 991px) {
+  /* Make dropdown menu scrollable */
+  .navbar-nav .dropdown-menu {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: absolute !important; /* Use absolute instead of fixed */
+    inset: auto auto auto 0 !important; /* Reset Bootstrap positioning */
+    transform: none !important;
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+  }
+  
+  /* Ensure dropdown items are clickable */
+  .dropdown-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative; /* Ensure proper stacking */
+    z-index: 1;
+  }
+  
+  /* Remove the blocking pseudo-element */
+  .navbar-nav .dropdown-menu::after {
+    display: none !important;
+  }
+}
+
+/* ==========================================
+   NAVBAR COLLAPSE SCROLL
+   ========================================== */
+
+@media (max-width: 991px) {
+  .navbar-collapse.show {
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2rem; /* Space at bottom */
+  }
+}
