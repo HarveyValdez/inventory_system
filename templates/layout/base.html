@@ -18,7 +18,7 @@
   <!-- Custom CSS -->
   <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
   
-  <!-- Configuration for JavaScript (SAFE - No Jinja2 errors) -->
+  
   <script type="application/json" id="vortex-config">
     {
       "userId": {{ session.get('user_id', 0) }},
@@ -71,9 +71,11 @@
             {% if session.get('role') == 'admin' %}
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
-                  Dashboard
-                  {% if low_stock_count and low_stock_count > 0 %}
-                    <span class="nav-badge">{{ low_stock_count }}</span>
+                   Dashboard
+                  {% set report_count = unread_reports_count() %}
+                  {% set total_alerts = low_stock_count + report_count %}
+                  {% if total_alerts > 0 %}
+                    <span class="nav-badge">{{ total_alerts }}</span>
                   {% endif %}
                 </a>
               </li>

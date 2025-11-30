@@ -5,7 +5,7 @@ import os
 import filetype
 import csv
 import re
-import secrets
+import secrets 
 from io import StringIO
 from datetime import datetime, timezone, timedelta  
 from functools import wraps
@@ -116,6 +116,7 @@ class User(db.Model):
     username = db.Column(db.String(50), unique=True, nullable=False)
     password = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(10), nullable=False)
+    must_change_password = db.Column(db.Boolean, default=False, nullable=False)
     
     # Enhanced name fields
     first_name = db.Column(db.String(50), nullable=False)
@@ -256,6 +257,17 @@ class UserReport(db.Model):
     def __repr__(self):
         return f"<UserReport {self.id} - {self.user.username}: {self.report_type}>"
 
+# Add this to your models section if needed
+class StaffSetupToken(db.Model):
+    """Separate table for staff setup tokens to keep User model clean"""
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(100), unique=True, nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    
+    user = db.relationship('User', backref='setup_token', lazy=True)
+
 # =====================================================
 # TEMPLATE FILTERS
 # =====================================================
@@ -305,34 +317,30 @@ def login():
         user = User.query.filter_by(username=username).first()
 
         if user and bcrypt.check_password_hash(user.password, password):
+            # CHECK PASSWORD CHANGE REQUIREMENT
+            if hasattr(user, 'must_change_password') and user.must_change_password:
+                session['user_id'] = user.id
+                session['username'] = user.username
+                session['role'] = user.role
+                flash("⚠️ You must change your password before continuing.", "warning")
+                return redirect(url_for('change_password'))
             
             if not user.is_approved:
-                flash("❌ Your account is pending admin approval. Please contact an administrator.", "warning")
+                flash("❌ Account pending approval.", "warning")
                 return render_template('login.html')
 
+            # Normal login flow...
             session['user_id'] = user.id
             session['username'] = user.username
             session['role'] = user.role
-
             
-            login_log = LoginActivity(
-                user_id=user.id,
-                username=user.username,
-                action='Login',
-                ip_address=request.remote_addr
-            )
-            db.session.add(login_log)
+            db.session.add(LoginActivity(user_id=user.id, username=user.username, action='Login'))
             db.session.commit()
-
+            
             flash(f"Welcome, {user.username}!", "success")
-
-           
-            if user.role == 'admin':
-                return redirect(url_for('homepage'))
-            elif user.role == 'staff':
-                return redirect(url_for('homepage'))
+            return redirect(url_for('homepage' if user.role == 'admin' else 'staff_dashboard'))
         else:
-            flash("Invalid username or password", "danger")
+            flash("Invalid credentials", "danger")
 
     return render_template('login.html')
 
@@ -361,44 +369,36 @@ def change_password():
         flash("Please log in first.", "warning")
         return redirect(url_for('login'))
 
-    if session.get('role') not in ['staff', 'admin']:
-        flash("Unauthorized access.", "danger")
-        return redirect(url_for('index'))
-
     user = User.query.get_or_404(session['user_id'])
+    must_change = hasattr(user, 'must_change_password') and user.must_change_password
 
     if request.method == 'POST':
         old_password = request.form['old_password']
         new_password = request.form['new_password']
         confirm_password = request.form['confirm_password']
 
-        # ✅ VALIDATION: Password length 
         if len(new_password) < 6:
             flash("❌ Password must be at least 6 characters.", "danger")
             return redirect(url_for('change_password'))
 
-        # ✅ VALIDATION: New password 
-        if new_password == old_password:
-            flash("❌ New password must be different from old password.", "danger")
-            return redirect(url_for('change_password'))
-
-        # ✅ VALIDATION:old password
         if not bcrypt.check_password_hash(user.password, old_password):
-            flash("❌ Incorrect old password.", "danger")
+            flash("❌ Incorrect password.", "danger")
             return redirect(url_for('change_password'))
 
-        # ✅ VALIDATION:password match
         if new_password != confirm_password:
-            flash("❌ New passwords do not match.", "danger")
+            flash("❌ Passwords do not match.", "danger")
             return redirect(url_for('change_password'))
 
+        # Update password and clear flag
         user.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+        if hasattr(user, 'must_change_password'):
+            user.must_change_password = False
         db.session.commit()
 
-        flash("✅ Password updated successfully!", "success")
+        flash("✅ Password changed successfully!", "success")
         return redirect(url_for('admin_dashboard' if user.role == 'admin' else 'staff_dashboard'))
 
-    return render_template('change_password.html')
+    return render_template('change_password.html', must_change_password=must_change)
 
 
 # =====================================================
@@ -522,72 +522,97 @@ def staff_dashboard():
 @admin_only
 def register_staff():
     if request.method == 'POST':
-        username = request.form['username'].strip()
-        password = request.form['password']
-        full_name = request.form['full_name'].strip()
-        email = request.form['email'].strip()
-        phone = request.form['phone'].strip()
-        department = request.form['department']
-
-        # SERVER-SIDE VALIDATION
-        errors = []
-        
-        if len(username) < 3:
-            errors.append("Username must be at least 3 characters.")
-        
-        if len(password) < 6:
-            errors.append("Password must be at least 6 characters.")
-        
-        if not full_name or len(full_name) < 3:
-            errors.append("Full name is required and must be at least 3 characters.")
-        
-        # Email validation
-        import re
-        email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
-        if not email or not re.match(email_pattern, email):
-            errors.append("Valid email address is required.")
-        
-        # Check for existing 
-        if User.query.filter_by(username=username).first():
-            errors.append(f"Username '{username}' already exists!")
-        
-        if User.query.filter_by(email=email).first():
-            errors.append(f"Email '{email}' is already registered!")
-        
-        # errors 
-        if errors:
-            for error in errors:
-                flash(f"❌ {error}", "danger")
-            return redirect(url_for('register_staff'))
-
-        # ✅ CREATE USER WITH DETAILS
-        hashed_pw = bcrypt.generate_password_hash(password).decode('utf-8')
-        new_staff = User(
-            username=username,
-            password=hashed_pw,
-            role='staff',
-            full_name=full_name,
-            email=email,
-            phone=phone,
-            department=department
-        )
-        db.session.add(new_staff)
-        db.session.commit()
-
-        # LOG ACTIVITY
-        activity = ActivityLog(
-            user_id=session['user_id'],
-            username=session['username'],
-            action=f"Admin registered new staff: {username}",
-            product_name=f"{full_name} ({department})"
-        )
-        db.session.add(activity)
-        db.session.commit()
-
-        flash(f"✅ Staff '{username}' registered successfully!", "success")
-        return redirect(url_for('manage_users'))
-
+        try:
+            errors = []
+            first_name = request.form['first_name'].strip()
+            last_name = request.form['last_name'].strip()
+            email = request.form['email'].strip()
+            department = request.form['department']
+            username = request.form['username'].strip()
+            password = request.form['password']
+            confirm_password = request.form['confirm_password']
+            
+            # GET PHONE WITH DEFAULT EMPTY STRING
+            phone = request.form.get('phone', '').strip() or "Not provided"
+            
+            # Validation checks
+            if len(first_name) < 2: errors.append("First name too short")
+            if len(last_name) < 2: errors.append("Last name too short")
+            if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+                errors.append("Invalid email format")
+            if len(username) < 3: errors.append("Username too short")
+            if not re.match(r'^[a-zA-Z0-9_]+$', username): errors.append("Invalid username format")
+            if password != confirm_password: errors.append("Passwords don't match")
+            if len(password) < 6: errors.append("Password too short")
+            if User.query.filter_by(username=username).first(): errors.append("Username exists")
+            if User.query.filter_by(email=email).first(): errors.append("Email exists")
+            
+            if errors:
+                for error in errors:
+                    flash(f"❌ {error}", "danger")
+                return render_template('register_staff.html')
+            
+            # CREATE USER - PHONE WILL NEVER BE NULL
+            new_staff = User(
+                username=username,
+                password=bcrypt.generate_password_hash(password).decode('utf-8'),
+                role='staff',
+                must_change_password=True,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                phone=phone,  # Guarantees a value
+                department=department,
+                is_active=True,
+                is_approved=True,
+                terms_accepted=False
+            )
+            db.session.add(new_staff)
+            
+            log = ActivityLog(user_id=session['user_id'], username=session['username'], 
+                            action="Registered staff", product_name=f"{first_name} {last_name}")
+            db.session.add(log)
+            db.session.commit()
+            
+            flash(f"✅ Staff '{username}' created! Password change required on first login.", "success")
+            return redirect(url_for('manage_users'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f"❌ Error: {str(e)}", "danger")
+            return render_template('register_staff.html')
+    
     return render_template('register_staff.html')
+
+# Add API endpoints for validation
+@app.route('/api/check_username')
+def check_username():
+    """Check if username is available"""
+    username = request.args.get('username', '').strip()
+    
+    if not username or len(username) < 3:
+        return {'available': False, 'message': 'Username too short'}
+    
+    if not re.match(r'^[a-zA-Z0-9_]+$', username):
+        return {'available': False, 'message': 'Invalid characters'}
+    
+    if User.query.filter_by(username=username).first():
+        return {'available': False, 'message': 'Username already taken'}
+    
+    return {'available': True, 'message': 'Username available'}
+
+@app.route('/api/check_email')
+def check_email():
+    """Check if email is available"""
+    email = request.args.get('email', '').strip()
+    
+    if not email or '@' not in email:
+        return {'available': False, 'message': 'Invalid email format'}
+    
+    if User.query.filter_by(email=email).first():
+        return {'available': False, 'message': 'Email already registered'}
+    
+    return {'available': True, 'message': 'Email available'}
 
 
 @app.route('/manage_users')
@@ -1065,10 +1090,10 @@ def inject_report_alerts():
     def get_unread_report_count():
         return UserReport.query.filter_by(status='unread').count()
     
-    # Also inject the model class itself if needed for queries
+
     return {
-        'UserReport': UserReport,  # This makes UserReport available in templates
-        'unread_reports_count': get_unread_report_count  # Helper function
+        'UserReport': UserReport, 
+        'unread_reports_count': get_unread_report_count
     }
 
 # =====================================================
@@ -1345,15 +1370,14 @@ def product_history(product_id):
 
 @app.route('/debug')
 def debug_homepage():
-    # Raw database checks
     total = Product.query.count()
     low_stock = Product.query.filter(Product.stock < 5).count()
     active = User.query.filter(User.is_active == True).count()
     
-    # Print to console
+ 
     print(f"DEBUG: total_products={total}, low_stock={low_stock}, active_users={active}")
     
-    # Return raw values (bypass template)
+
     return {
         "total_products": total,
         "low_stock_count": low_stock,
@@ -1537,7 +1561,7 @@ def register_with_invite(token):
     if len(request.form['last_name']) < 2:
         errors.append("Last name must be at least 2 characters.")
     
-    # Date validation (18+ check)
+    # Date validation
     try:
         birthdate = datetime.strptime(request.form['birthdate'], '%Y-%m-%d').date()
         today = datetime.now().date()
@@ -1547,12 +1571,12 @@ def register_with_invite(token):
     except ValueError:
         errors.append("Invalid birthdate format.")
     
-    # Contact number validation
+   
     phone = request.form['phone'].strip()
     if not re.match(r'^[\d\-\+\(\)\s]+$', phone):
         errors.append("Invalid phone number format.")
     
-    # Terms acceptance
+    
     if not request.form.get('terms_accepted'):
         errors.append("You must accept the Terms and Conditions.")
     
@@ -1591,7 +1615,7 @@ def register_with_invite(token):
         )
         db.session.add(new_user)
         
-        # Mark invitation as used
+        
         invitation.used = True
         invitation.used_at = datetime.utcnow()
         
@@ -1656,8 +1680,7 @@ def delete_account(id):
         )
         db.session.add(log)
         
-        # Delete user and associated data
-        # Note: Reports and activity logs are preserved for audit
+
         UserReport.query.filter_by(user_id=user.id).delete()
         
         db.session.delete(user)
@@ -1700,8 +1723,7 @@ def submit_report():
         db.session.add(report)
         db.session.commit()
         
-        # Optional: Send email to admin
-        # send_admin_notification(report)
+
         
         return {"success": True, "message": "Report submitted successfully"}
         
@@ -1755,7 +1777,7 @@ def inject_user_details():
         return {'current_user': User.query.get(session['user_id'])}
     return {'current_user': None}
 
-# Add this AFTER your existing filters, around line 710
+
 
 @app.context_processor
 def inject_user_utils():
@@ -1771,7 +1793,7 @@ def inject_user_utils():
         if not last_login or not last_login.timestamp:
             return 'First time'
         
-        # Use your existing manila_time filter
+        
         return manila_time_filter(last_login.timestamp)
     
     def format_date_value(value, format='%B %d, %Y'):
@@ -1783,7 +1805,7 @@ def inject_user_utils():
         except:
             return str(value)
     
-    # Return functions, not filters
+   
     return {
         'get_last_login': get_last_login,
         'format_date_value': format_date_value,

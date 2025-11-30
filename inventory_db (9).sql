@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Nov 28, 2025 at 04:40 PM
+-- Generation Time: Nov 30, 2025 at 12:02 PM
 -- Server version: 9.1.0
 -- PHP Version: 8.3.14
 
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS `activity_log` (
   `timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=88 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=97 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `activity_log`
@@ -130,7 +130,16 @@ INSERT INTO `activity_log` (`id`, `user_id`, `username`, `action`, `product_name
 (84, 1, 'qwerty213', 'Admin deleted product', 'Sketchers2', '2025-11-25 07:52:28'),
 (85, 1, 'qwerty213', 'Admin edited product', 'Sketchers', '2025-11-25 07:54:08'),
 (86, 1, 'qwerty213', 'Admin edited product', 'Cortez', '2025-11-25 07:55:12'),
-(87, 1, 'qwerty213', 'Admin created invitation for harvey123@gmail.com', 'Inventory Department', '2025-11-25 10:35:02');
+(87, 1, 'qwerty213', 'Admin created invitation for harvey123@gmail.com', 'Inventory Department', '2025-11-25 10:35:02'),
+(88, 1, 'qwerty213', 'Admin created invitation for qwe@gmail.com', 'Inventory Department', '2025-11-28 16:57:02'),
+(89, 1, 'qwerty213', 'Admin added product', 'Ortiz nike', '2025-11-28 17:34:02'),
+(90, 1, 'qwerty213', 'Admin added product', 'awe', '2025-11-28 17:39:40'),
+(91, 1, 'qwerty213', 'Admin deleted product', 'Ortiz nike', '2025-11-28 17:40:18'),
+(92, 1, 'qwerty213', 'Admin deleted product', 'awe', '2025-11-28 17:40:22'),
+(93, 1, 'qwerty213', 'Admin created invitation for harv2@gmail.com', 'Inventory Department', '2025-11-28 17:57:39'),
+(94, 1, 'qwerty213', 'Admin created invitation for harvey2@gmail.com', 'Inventory Department', '2025-11-28 18:21:21'),
+(95, NULL, 'System', 'Staff registered via invitation', 'Anne Mascarinas Quiatchon (harvey2@gmail.com)', '2025-11-28 18:25:12'),
+(96, 1, 'qwerty213', 'Admin created invitation for newstaff@gmail.com', 'Inventory Department', '2025-11-30 09:25:21');
 
 -- --------------------------------------------------------
 
@@ -155,18 +164,15 @@ CREATE TABLE IF NOT EXISTS `invitation` (
   KEY `created_by` (`created_by`),
   KEY `idx_token` (`token`),
   KEY `idx_email` (`email`)
-) ENGINE=MyISAM AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `invitation`
 --
 
 INSERT INTO `invitation` (`id`, `token`, `email`, `role`, `department`, `created_by`, `created_at`, `expires_at`, `used`, `used_at`) VALUES
-(4, '3TgUEtjHgxodMW8jHbKyg5hRnBdc8IL3UVQdFXMHLA4', 'piercevaldez02@gmail.com', 'staff', 'Inventory', 1, '2025-11-25 06:14:29', '2025-11-26 06:14:29', 1, '2025-11-25 06:14:46'),
-(5, 'a5DG46QeknJXshxLnBIW2JnNHYcdrGOgemyLAKg1H7I', 'harvey213@gmail.com', 'staff', 'Inventory', 1, '2025-11-25 06:22:15', '2025-11-26 06:22:15', 1, '2025-11-25 07:21:06'),
-(6, 'w8bdfzjxMcevoSzLeTirDiRNzkZqK4rOtOrBtwFr_mQ', 'glanceernestaleavaldez@gmail.com', 'staff', 'General', 1, '2025-11-25 07:37:22', '2025-11-26 07:37:22', 0, NULL),
-(7, 'oztmDA3sDIBG5ILGrgtVz4lazzbyVZ7-D4hiRvM9Roc', 'harvey21331@gmail.com', 'staff', 'Inventory', 1, '2025-11-25 07:37:49', '2025-11-26 07:37:49', 0, NULL),
-(8, 'BrK-KgF_9QyNOQRuKCgBhuQPdxY8LhChK0QmdCn99pM', 'harvey123@gmail.com', 'staff', 'Inventory', 1, '2025-11-25 10:35:02', '2025-11-26 10:35:02', 0, NULL);
+(12, 'eQZ7z9BocVFRAZPkfJKAf0ks_PTsKyhIdHBxIT7hllc', 'newstaff@gmail.com', 'staff', 'Inventory', 1, '2025-11-30 09:25:21', '2025-12-01 09:25:21', 0, NULL),
+(11, '4ax6EyFEYx2pHuiVa_JfJDYuLHdVwZn7o2T1L3w4hWQ', 'harvey2@gmail.com', 'staff', 'Inventory', 1, '2025-11-28 18:21:21', '2025-11-29 18:21:21', 1, '2025-11-28 18:25:12');
 
 -- --------------------------------------------------------
 
@@ -184,7 +190,7 @@ CREATE TABLE IF NOT EXISTS `login_activity` (
   `ip_address` varchar(45) DEFAULT NULL,
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=263 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=307 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `login_activity`
@@ -452,7 +458,51 @@ INSERT INTO `login_activity` (`id`, `user_id`, `username`, `action`, `timestamp`
 (259, 1, 'qwerty213', 'Login', '2025-11-25 07:25:51', '192.168.1.15'),
 (260, 1, 'qwerty213', 'Login', '2025-11-25 08:03:12', '192.168.1.14'),
 (261, 1, 'qwerty213', 'Login', '2025-11-25 08:03:28', '127.0.0.1'),
-(262, 1, 'qwerty213', 'Login', '2025-11-25 10:33:10', '127.0.0.1');
+(262, 1, 'qwerty213', 'Login', '2025-11-25 10:33:10', '127.0.0.1'),
+(263, 1, 'qwerty213', 'Login', '2025-11-28 16:56:43', '127.0.0.1'),
+(264, 1, 'qwerty213', 'Login', '2025-11-28 18:13:07', '127.0.0.1'),
+(265, 18, 'anne', 'Login', '2025-11-28 18:25:34', '127.0.0.1'),
+(266, 1, 'qwerty213', 'Login', '2025-11-28 19:33:12', '127.0.0.1'),
+(267, 1, 'qwerty213', 'Logout', '2025-11-28 19:33:51', '127.0.0.1'),
+(268, 3, 'qwerty', 'Login', '2025-11-28 19:33:55', '127.0.0.1'),
+(269, 3, 'qwerty', 'Logout', '2025-11-28 19:34:03', '127.0.0.1'),
+(270, 1, 'qwerty213', 'Login', '2025-11-28 19:35:12', '127.0.0.1'),
+(271, 1, 'qwerty213', 'Logout', '2025-11-28 19:35:21', '127.0.0.1'),
+(272, 3, 'qwerty', 'Login', '2025-11-28 19:35:26', '127.0.0.1'),
+(273, 3, 'qwerty', 'Logout', '2025-11-28 19:35:34', '127.0.0.1'),
+(274, 1, 'qwerty213', 'Login', '2025-11-28 19:35:41', '127.0.0.1'),
+(275, 1, 'qwerty213', 'Logout', '2025-11-28 19:41:46', '127.0.0.1'),
+(276, 3, 'qwerty', 'Login', '2025-11-28 19:41:51', '127.0.0.1'),
+(277, 3, 'qwerty', 'Logout', '2025-11-28 19:42:19', '127.0.0.1'),
+(278, 1, 'qwerty213', 'Login', '2025-11-28 19:42:23', '127.0.0.1'),
+(279, 1, 'qwerty213', 'Logout', '2025-11-28 19:46:58', '127.0.0.1'),
+(280, 3, 'qwerty', 'Login', '2025-11-28 19:47:02', '127.0.0.1'),
+(281, 3, 'qwerty', 'Logout', '2025-11-28 19:47:09', '127.0.0.1'),
+(282, 1, 'qwerty213', 'Login', '2025-11-28 19:47:33', '127.0.0.1'),
+(283, 1, 'qwerty213', 'Logout', '2025-11-28 19:50:17', '127.0.0.1'),
+(284, 3, 'qwerty', 'Login', '2025-11-28 19:50:21', '127.0.0.1'),
+(285, 3, 'qwerty', 'Logout', '2025-11-28 19:50:30', '127.0.0.1'),
+(286, 1, 'qwerty213', 'Login', '2025-11-28 19:50:35', '127.0.0.1'),
+(287, 1, 'qwerty213', 'Logout', '2025-11-28 19:51:20', '127.0.0.1'),
+(288, 3, 'qwerty', 'Login', '2025-11-28 19:51:26', '127.0.0.1'),
+(289, 3, 'qwerty', 'Logout', '2025-11-28 20:00:10', '127.0.0.1'),
+(290, 1, 'qwerty213', 'Login', '2025-11-28 20:00:15', '127.0.0.1'),
+(291, 1, 'qwerty213', 'Logout', '2025-11-28 20:03:05', '127.0.0.1'),
+(292, 3, 'qwerty', 'Login', '2025-11-28 20:03:11', '127.0.0.1'),
+(293, 3, 'qwerty', 'Logout', '2025-11-28 20:03:32', '127.0.0.1'),
+(294, 1, 'qwerty213', 'Login', '2025-11-28 20:03:36', '127.0.0.1'),
+(295, 1, 'qwerty213', 'Logout', '2025-11-28 20:22:03', '127.0.0.1'),
+(296, 3, 'qwerty', 'Login', '2025-11-28 20:22:09', '127.0.0.1'),
+(297, 3, 'qwerty', 'Logout', '2025-11-28 20:22:45', '127.0.0.1'),
+(298, 1, 'qwerty213', 'Login', '2025-11-28 20:22:49', '127.0.0.1'),
+(299, 1, 'qwerty213', 'Logout', '2025-11-28 20:25:31', '127.0.0.1'),
+(300, 3, 'qwerty', 'Login', '2025-11-28 20:25:38', '127.0.0.1'),
+(301, 3, 'qwerty', 'Logout', '2025-11-28 20:30:58', '127.0.0.1'),
+(302, 1, 'qwerty213', 'Login', '2025-11-28 20:31:02', '127.0.0.1'),
+(303, 3, 'qwerty', 'Login', '2025-11-30 09:22:02', '10.64.37.96'),
+(304, 3, 'qwerty', 'Logout', '2025-11-30 09:22:56', '10.64.37.96'),
+(305, 1, 'qwerty213', 'Login', '2025-11-30 09:23:06', '10.64.37.96'),
+(306, 1, 'qwerty213', 'Login', '2025-11-30 09:26:46', '127.0.0.1');
 
 -- --------------------------------------------------------
 
@@ -473,7 +523,7 @@ CREATE TABLE IF NOT EXISTS `product` (
   `brand` varchar(50) DEFAULT NULL,
   `category` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id`)
-) ENGINE=MyISAM AUTO_INCREMENT=36 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `product`
@@ -560,7 +610,7 @@ CREATE TABLE IF NOT EXISTS `stock_alert` (
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `product_id` (`product_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `stock_alert`
@@ -570,7 +620,8 @@ INSERT INTO `stock_alert` (`id`, `product_id`, `product_name`, `stock`, `alert_t
 (1, 30, 'Sketchers3', 5, 'Low Stock', '2025-11-08 20:12:22'),
 (2, 28, 'Sketchers', 3, 'Low Stock', '2025-11-09 23:29:50'),
 (3, 31, 'shoe', 3, 'Low Stock', '2025-11-23 20:46:04'),
-(4, 29, 'Sketchers2', 4, 'Low Stock', '2025-11-23 20:46:48');
+(4, 29, 'Sketchers2', 4, 'Low Stock', '2025-11-23 20:46:48'),
+(5, 37, 'awe', 2, 'Low Stock', '2025-11-28 17:39:40');
 
 -- --------------------------------------------------------
 
@@ -632,7 +683,17 @@ CREATE TABLE IF NOT EXISTS `user` (
   `password` varchar(255) NOT NULL,
   `full_name` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
-  `phone` varchar(20) DEFAULT NULL,
+  `first_name` varchar(50) NOT NULL,
+  `middle_name` varchar(50) DEFAULT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `birthdate` date DEFAULT NULL,
+  `address` text,
+  `city` varchar(100) DEFAULT NULL,
+  `country` varchar(100) DEFAULT NULL,
+  `gender` varchar(20) DEFAULT NULL,
+  `education_level` varchar(50) DEFAULT NULL,
+  `terms_accepted` tinyint(1) NOT NULL DEFAULT '0',
+  `phone` varchar(20) NOT NULL,
   `department` varchar(50) DEFAULT 'General',
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
@@ -641,20 +702,46 @@ CREATE TABLE IF NOT EXISTS `user` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `unique_email` (`email`)
-) ENGINE=MyISAM AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 --
 -- Dumping data for table `user`
 --
 
-INSERT INTO `user` (`id`, `username`, `password`, `full_name`, `email`, `phone`, `department`, `is_active`, `created_at`, `role`, `is_approved`) VALUES
-(1, 'qwerty213', '$2b$12$hxtfngLXVZrlC93xp6nZM.xj.UVOrPodO/m8AHUGcdTeGjvEKmSXK', 'System Administrator', 'admin@system.local', '09312311234', 'General', 1, '2025-11-16 06:39:20', 'admin', 1),
-(3, 'qwerty', '$2b$12$4NYurfl4D12E0r9lkjGNveieXuI9IExQjlILtJVWXAs1CihV0Q2N2', 'qwerty', 'harveyvaldez02@gmail.com', '09159519433', 'General', 1, '2025-11-16 06:39:20', 'staff', 1),
-(12, 'anne213', '$2b$12$1uFu.KgR3Wlf37WJIn35aOiyNMhPbjkq8mNiLXkJZNP4erofnwAZG', 'anne quiatchon', 'annequiatchon23@gmail.com', '09956780716', 'General', 1, '2025-11-16 06:39:20', 'staff', 1),
-(14, 'harveyvaldez', '$2b$12$zbq6pA60VT..NK/TmUGH6umrsPnD24cMR0YyYQzbh5SUHDv1oLmCe', 'harveyvaldez', 'harvey@gmail.com', '09312315234', 'Inventory', 1, '2025-11-15 22:46:32', 'staff', 1),
-(15, 'glance21332', '$2b$12$h9F1/.w1/78GP3IdernHhO6UkpjJEFXpDEaD48yvIKvbN/kIbkllW', 'glance valdez', 'glance@gmail.com', '09312315231', 'IT', 1, '2025-11-20 03:40:20', 'admin', 1),
-(16, 'piercevaldez02', '$2b$12$KcE8hX4ImyWvj2s7F.eYuutMPwJ7AN.vgh4AcOTIFoKl2BN8eZam6', 'Pierce Harvey Valdez', 'piercevaldez02@gmail.com', '09065630763', 'Inventory', 1, '2025-11-25 06:14:46', 'staff', 1),
-(17, 'glance24', '$2b$12$mB334zBSuWvaxPNimlOqYO88MOkOH3p510KjE47jI1y96geMu9oGK', 'glance valdez', 'harvey213@gmail.com', '09065645694', 'Inventory', 1, '2025-11-25 07:21:06', 'staff', 1);
+INSERT INTO `user` (`id`, `username`, `password`, `full_name`, `email`, `first_name`, `middle_name`, `last_name`, `birthdate`, `address`, `city`, `country`, `gender`, `education_level`, `terms_accepted`, `phone`, `department`, `is_active`, `created_at`, `role`, `is_approved`) VALUES
+(1, 'qwerty213', '$2b$12$hxtfngLXVZrlC93xp6nZM.xj.UVOrPodO/m8AHUGcdTeGjvEKmSXK', 'System Administrator', 'admin@system.local', 'Pierce Harvey', 'Alea', 'Valdez', '2003-02-24', 'West rembo', 'makati', NULL, 'Male', 'College', 1, '09312311234', 'General', 1, '2025-11-16 06:39:20', 'admin', 1),
+(3, 'qwerty', '$2b$12$4NYurfl4D12E0r9lkjGNveieXuI9IExQjlILtJVWXAs1CihV0Q2N2', 'qwerty', 'harveyvaldez02@gmail.com', '', NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, 0, '09159519433', 'General', 1, '2025-11-16 06:39:20', 'staff', 1),
+(12, 'anne213', '$2b$12$1uFu.KgR3Wlf37WJIn35aOiyNMhPbjkq8mNiLXkJZNP4erofnwAZG', 'anne quiatchon', 'annequiatchon23@gmail.com', '', NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, 0, '09956780716', 'General', 1, '2025-11-16 06:39:20', 'staff', 1),
+(14, 'harveyvaldez', '$2b$12$zbq6pA60VT..NK/TmUGH6umrsPnD24cMR0YyYQzbh5SUHDv1oLmCe', 'harveyvaldez', 'harvey@gmail.com', '', NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, 0, '09312315234', 'Inventory', 1, '2025-11-15 22:46:32', 'staff', 1),
+(15, 'glance21332', '$2b$12$h9F1/.w1/78GP3IdernHhO6UkpjJEFXpDEaD48yvIKvbN/kIbkllW', 'glance valdez', 'glance@gmail.com', '', NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, 0, '09312315231', 'IT', 1, '2025-11-20 03:40:20', 'admin', 1),
+(16, 'piercevaldez02', '$2b$12$KcE8hX4ImyWvj2s7F.eYuutMPwJ7AN.vgh4AcOTIFoKl2BN8eZam6', 'Pierce Harvey Valdez', 'piercevaldez02@gmail.com', '', NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, 0, '09065630763', 'Inventory', 1, '2025-11-25 06:14:46', 'staff', 1),
+(17, 'glance24', '$2b$12$mB334zBSuWvaxPNimlOqYO88MOkOH3p510KjE47jI1y96geMu9oGK', 'glance valdez', 'harvey213@gmail.com', '', NULL, '', NULL, NULL, NULL, NULL, NULL, NULL, 0, '09065645694', 'Inventory', 1, '2025-11-25 07:21:06', 'staff', 1),
+(18, 'anne', '$2b$12$6RUCHvqlb/roSn4tF3gdCOWa9OhkEV0/u1hkOBLaSTscs/R/QnWFO', '', 'harvey2@gmail.com', 'Anne', 'Mascarinas', 'Quiatchon', '2003-06-01', '70 c panalo street cembo', 'Makati', NULL, 'Male', 'High School', 1, '09060229388', 'Inventory', 1, '2025-11-28 18:25:12', 'staff', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `user_report`
+--
+
+DROP TABLE IF EXISTS `user_report`;
+CREATE TABLE IF NOT EXISTS `user_report` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int NOT NULL,
+  `report_type` varchar(50) NOT NULL,
+  `message` text NOT NULL,
+  `status` varchar(20) DEFAULT NULL,
+  `created_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `user_id` (`user_id`)
+) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `user_report`
+--
+
+INSERT INTO `user_report` (`id`, `user_id`, `report_type`, `message`, `status`, `created_at`) VALUES
+(2, 3, 'feature', 'editing the details', 'unread', '2025-11-28 20:22:43');
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

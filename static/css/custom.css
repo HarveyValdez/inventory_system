@@ -1295,3 +1295,92 @@ th {
     margin-bottom: 0.5rem;
   }
 }
+
+/* Multi-step form styles */
+.form-step {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+.progress-bar-striped {
+  background-size: 1rem 1rem;
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+}
+
+.icon-circle {
+  width: 80px;
+  height: 80px;
+  background: var(--glass-bg);
+  border: 2px solid var(--glass-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(10px);
+  transition: all var(--transition-fast);
+}
+
+.icon-circle:hover {
+  transform: scale(1.1);
+  box-shadow: var(--shadow-accent);
+}
+
+.permission-item {
+  display: flex;
+  align-items: center;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--glass-border);
+  font-size: 0.9rem;
+}
+
+.permission-item:last-child {
+  border-bottom: none;
+}
+
+.permission-item i {
+  width: 20px;
+  margin-right: 0.75rem;
+  font-size: 1rem;
+}
+
+.permission-item .fa-check-circle {
+  color: var(--success-color);
+}
+
+.permission-item .fa-times-circle {
+  color: var(--danger-color);
+}
+
+#permissionPreview {
+  background: rgba(0, 184, 148, 0.05);
+  border: 1px solid rgba(0, 184, 148, 0.3);
+  border-radius: var(--border-radius-sm);
+}
+
+.form-control.is-valid {
+  border-color: var(--success-color);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%232dd4bf' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+}
+
+.form-control.is-invalid {
+  border-color: var(--danger-color);
+}
+
+/* Pulse animation for submit button */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(0, 184, 148, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0); }
+}
+
+.pulse-btn {
+  animation: pulse 2s infinite;
+}
