@@ -1,9 +1,5 @@
-/**
- * Vortex Inventory - Base JavaScript
- * Configuration loaded from HTML data attributes
- */
 
-// Wait for DOM to be ready
+
 document.addEventListener('DOMContentLoaded', function() {
   // Load configuration from meta/script tag
   const configEl = document.getElementById('vortex-config');
@@ -20,7 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
   initAdminFeatures();
 });
 
-// Account deletion with confirmation
+// Account deletion 
 async function confirmAccountDelete() {
   const { username, userId, routes, csrfToken } = window.VortexConfig;
   
@@ -40,7 +36,7 @@ async function confirmAccountDelete() {
   const deleteBtn = document.activeElement;
   const originalText = deleteBtn.innerHTML;
   
-  // Prevent double-click
+  
   deleteBtn.disabled = true;
   deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
 
@@ -84,7 +80,7 @@ function showFlashMessage(message, category = 'info') {
   `;
   document.body.appendChild(flashContainer);
   
-  // Auto-remove after 5 seconds
+  
   setTimeout(() => {
     if (flashContainer.parentNode) {
       flashContainer.remove();
@@ -92,20 +88,20 @@ function showFlashMessage(message, category = 'info') {
   }, 5000);
 }
 
-// Admin report notification system
+// Admin report 
 let reportCheckInterval;
 let lastReportCount = 0;
 
 function initAdminFeatures() {
   if (!window.VortexConfig.isAdmin) return;
 
-  // Request notification permission
+  
   if ('Notification' in window && Notification.permission === 'default') {
     Notification.requestPermission();
   }
 
-  checkReports(); // Check immediately
-  reportCheckInterval = setInterval(checkReports, 30000); // Every 30s
+  checkReports(); 
+  reportCheckInterval = setInterval(checkReports, 30000); 
 }
 
 async function checkReports() {
@@ -125,9 +121,9 @@ async function checkReports() {
       notification.style.display = 'block';
       countEl.textContent = data.count;
       
-      // Play sound and show browser notification only if NEW reports
+      
       if (data.count > lastReportCount) {
-        // Sound notification
+        
         try {
           const audio = new Audio('/static/sounds/notification.mp3');
           audio.volume = 0.3;
@@ -136,7 +132,7 @@ async function checkReports() {
           console.log('Notification sound not available');
         }
 
-        // Browser notification
+        
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification('New User Report', {
             body: `${data.count} new report${data.count > 1 ? 's' : ''} need attention`,
@@ -171,7 +167,8 @@ function openReports() {
   );
 }
 
-// Cleanup on page unload
+
 window.addEventListener('beforeunload', function() {
   if (reportCheckInterval) clearInterval(reportCheckInterval);
 });
+

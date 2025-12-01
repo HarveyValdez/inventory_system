@@ -1285,7 +1285,7 @@ th {
   box-shadow: var(--shadow-accent);
 }
 
-/* Responsive adjustments */
+
 @media (max-width: 768px) {
   .account-actions {
     flex-direction: column;
@@ -1296,7 +1296,7 @@ th {
   }
 }
 
-/* Multi-step form styles */
+/*  form styles */
 .form-step {
   animation: fadeInUp 0.4s ease-out;
 }
@@ -1374,7 +1374,7 @@ th {
   border-color: var(--danger-color);
 }
 
-/* Pulse animation for submit button */
+/* Pulse animation  */
 @keyframes pulse {
   0% { box-shadow: 0 0 0 0 rgba(0, 184, 148, 0.7); }
   70% { box-shadow: 0 0 0 10px rgba(0, 184, 148, 0); }
@@ -1383,4 +1383,124 @@ th {
 
 .pulse-btn {
   animation: pulse 2s infinite;
+}
+
+/* Activity Logs  */
+.activity-timeline { animation: fadeInUp 0.6s ease-out; }
+.activity-card { transition: all var(--transition-fast); }
+.activity-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-accent); }
+
+.user-avatar { text-align: center; }
+.action-text { font-weight: 600; color: var(--text-primary); }
+
+.product-tag, .field-tag {
+  display: inline-inline-block;
+  background: var(--glass-bg);
+  padding: 0.25rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  border: 1px solid var(--glass-border);
+}
+
+.reason-badge {
+  background: rgba(0, 184, 148, 0.1);
+  border-left: 4px solid var(--accent-primary);
+  padding: 0.75rem;
+  border-radius: var(--border-radius-xs);
+}
+
+.change-old { color: var(--danger-color); font-weight: 500; }
+.change-new { color: var(--success-color); font-weight: 500; }
+
+.table-glass { background: transparent; }
+.table-glass th { 
+  background: var(--accent-gradient); 
+  color: white; 
+  border: none; 
+  padding: 1rem;
+}
+.table-glass td { background: rgba(255, 255, 255, 0.5); border-color: var(--glass-border); }
+
+.btn-glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  color: var(--text-primary);
+  border-radius: var(--border-radius-xs);
+  padding: 0.5rem 0.75rem;
+  transition: all var(--transition-fast);
+}
+.btn-glass:hover { background: var(--accent-primary); color: white; transform: translateY(-2px); }
+
+.fade-in { animation: fadeInUp 0.3s ease-out; }
+
+/* Stock Control  */
+.stock-form .input-group {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.stock-form .input-group input.form-control {
+  flex: 1;
+  min-width: 60px;
+  max-width: 80px;
+}
+
+.stock-form .input-group button {
+  flex: 0 0 auto;
+  padding: 0.375rem 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/*  icons center  */
+.stock-form .input-group button i {
+  margin: 0;
+}
+
+/* ==========================================
+   MOBILE DROPDOWN SCROLL FIX - WORKING
+   ========================================== */
+
+@media (max-width: 991px) {
+  
+  .navbar-nav .dropdown-menu {
+    max-height: 60vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: absolute !important; 
+    inset: auto auto auto 0 !important;
+    transform: none !important;
+    width: 100% !important;
+    margin-top: 0.5rem !important;
+  }
+  
+  
+  .dropdown-item {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative; 
+    z-index: 1;
+  }
+  
+  
+  .navbar-nav .dropdown-menu::after {
+    display: none !important;
+  }
+}
+
+/* ==========================================
+   NAVBAR COLLAPSE SCROLL
+   ========================================== */
+
+@media (max-width: 991px) {
+  .navbar-collapse.show {
+    max-height: 85vh;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2rem;
+  }
 }
